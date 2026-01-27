@@ -5,6 +5,7 @@ from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.oxml import OxmlElement, ns
 from docx.oxml.ns import qn
 import os
+import re  # Asegúrate de importar re al principio del archivo
 
 # Importamos las utilidades
 from utilidades_docx import (
@@ -209,7 +210,8 @@ def generar_ficha_2_1(ruta_excel, ruta_plantilla_base, ruta_salida_final, anio, 
             coste_total = "0,00"
             
         # Extraer año de inicio del periodo 1 (ej: "2010" de "2010-2015")
-        anio_inicio = periodo1[0:4] if len(periodo1) >= 4 else periodo1
+        match_anio = re.search(r'\d{4}', str(periodo1))
+        anio_inicio = match_anio.group(0) if match_anio else "?????"
 
         actividad_4_1 = (
             f"{nombre} {apellidos}, con titulación en {titulacion} ocupa el puesto de {puesto} "
