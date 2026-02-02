@@ -153,12 +153,19 @@ def procesar_cvs():
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     INPUT_DIR = os.path.join(BASE_DIR, 'inputs')
     CVS_DIR = os.path.join(INPUT_DIR, 'cvs')
-    EXCEL_PERSONAL = os.path.join(INPUT_DIR, "Excel_Personal_2.1.xlsx")
+    EXCEL_PERSONAL_XLSX = os.path.join(INPUT_DIR, "Excel_Personal_2.1.xlsx")
+    EXCEL_PERSONAL_JSON = os.path.join(INPUT_DIR, "Excel_Personal_2.1.json")
 
     if not os.path.exists(CVS_DIR): return
-    if not os.path.exists(EXCEL_PERSONAL): return
+    if not (os.path.exists(EXCEL_PERSONAL_XLSX) or os.path.exists(EXCEL_PERSONAL_JSON)): return
 
-    df = pd.read_excel(EXCEL_PERSONAL)
+    # Leer JSON si existe, si no leer xlsx
+    if os.path.exists(EXCEL_PERSONAL_JSON):
+        df = pd.read_json(EXCEL_PERSONAL_JSON)
+        salida_json = True
+    else:
+        df = pd.read_excel(EXCEL_PERSONAL_XLSX)
+        salida_json = False
     
     # Aseguramos columnas necesarias, incluyendo 'Puesto actual'
     cols_check = [
@@ -204,8 +211,13 @@ def procesar_cvs():
             
             if datos: encontrados += 1
 
-    df.to_excel(EXCEL_PERSONAL, index=False)
-    print(f"\n💾 Excel actualizado: {encontrados} perfiles procesados.")
+    # Guardar en el mismo formato de entrada (JSON o XLSX)
+    if salida_json:
+        df.to_json(EXCEL_PERSONAL_JSON, orient='records', force_ascii=False, date_format='iso')
+        print(f"\n💾 JSON actualizado: {encontrados} perfiles procesados.")
+    else:
+        df.to_excel(EXCEL_PERSONAL_XLSX, index=False)
+        print(f"\n💾 Excel actualizado: {encontrados} perfiles procesados.")
 
 if __name__ == "__main__":
     procesar_cvs()

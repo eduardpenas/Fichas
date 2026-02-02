@@ -133,8 +133,9 @@ def procesar_anexo():
                       "EMPRESA 1", "PERIODO 1", "PUESTO 1", "Actividad 1", "Actividad 2", "Actividad 3", "Actividad 4"]:
                 df_final_p[c] = ""
 
-            df_final_p.to_excel(os.path.join(INPUT_DIR, "Excel_Personal_2.1.xlsx"), index=False)
-            print(f"   ✅ Personal generado: {len(df_final_p)} personas")
+            json_path_p = os.path.join(INPUT_DIR, "Excel_Personal_2.1.json")
+            df_final_p.to_json(json_path_p, orient='records', force_ascii=False, date_format='iso')
+            print(f"   ✅ Personal generado: {len(df_final_p)} personas (JSON: {os.path.basename(json_path_p)})")
         else:
             print("   ⚠️ No se encontraron columnas de Personal para el año detectado.")
 
@@ -228,12 +229,14 @@ def procesar_anexo():
 
         if colaboraciones_list:
             df_colab = pd.DataFrame(colaboraciones_list).drop_duplicates(subset="Razón social")
-            df_colab.to_excel(os.path.join(INPUT_DIR, "Excel_Colaboraciones_2.2.xlsx"), index=False)
-            print(f"   ✅ Colaboraciones generado: {len(df_colab)} entidades")
+            json_path_colab = os.path.join(INPUT_DIR, "Excel_Colaboraciones_2.2.json")
+            df_colab.to_json(json_path_colab, orient='records', force_ascii=False, date_format='iso')
+            print(f"   ✅ Colaboraciones generado: {len(df_colab)} entidades (JSON: {os.path.basename(json_path_colab)})")
             
             df_fact = pd.DataFrame(facturas_list)
-            df_fact.to_excel(os.path.join(INPUT_DIR, "Excel_Facturas_2.2.xlsx"), index=False)
-            print(f"   ✅ Facturas generado: {len(df_fact)} registros")
+            json_path_fact = os.path.join(INPUT_DIR, "Excel_Facturas_2.2.json")
+            df_fact.to_json(json_path_fact, orient='records', force_ascii=False, date_format='iso')
+            print(f"   ✅ Facturas generado: {len(df_fact)} registros (JSON: {os.path.basename(json_path_fact)})")
         else:
             print("   ⚠️ No se encontraron datos de colaboraciones con importe > 0")
 

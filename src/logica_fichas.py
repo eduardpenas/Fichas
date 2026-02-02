@@ -7,20 +7,33 @@ from docx.oxml.ns import qn
 import os
 import re  # Asegúrate de importar re al principio del archivo
 
-# Importamos las utilidades
-from utilidades_docx import (
-    formatea_euro, get_value_or_default, add_text_to_cell, 
-    set_cell_color, set_text_format, create_titled_box, cm_to_pt,
-    set_cell_format, crear_tabla_coste_colaboracion
-)
+# Importamos las utilidades (import flexible para ambos contextos)
+try:
+    from .utilidades_docx import (
+        formatea_euro, get_value_or_default, add_text_to_cell, 
+        set_cell_color, set_text_format, create_titled_box, cm_to_pt,
+        set_cell_format, crear_tabla_coste_colaboracion
+    )
+except ImportError:
+    from utilidades_docx import (
+        formatea_euro, get_value_or_default, add_text_to_cell, 
+        set_cell_color, set_text_format, create_titled_box, cm_to_pt,
+        set_cell_format, crear_tabla_coste_colaboracion
+    )
+
 
 # ==========================================
 # FICHA 2.1 (Personal)
 # ==========================================
 def generar_ficha_2_1(ruta_excel, ruta_plantilla_base, ruta_salida_final, anio, acronimus):
     """Genera la Ficha 2.1 replicando exactamente la lógica del notebook."""
-    print(f"Leyendo Excel: {ruta_excel}")
-    df_ficha = pd.read_excel(ruta_excel)
+    print(f"Leyendo datos: {ruta_excel}")
+    _, ext = os.path.splitext(ruta_excel)
+    ext = ext.lower()
+    if ext == '.json':
+        df_ficha = pd.read_json(ruta_excel)
+    else:
+        df_ficha = pd.read_excel(ruta_excel)
 
     # Ordenar por nombre si es necesario
     if not df_ficha['Nombre'].is_monotonic_increasing:
@@ -254,11 +267,21 @@ def generar_ficha_2_1(ruta_excel, ruta_plantilla_base, ruta_salida_final, anio, 
 # ==========================================
 def generar_ficha_2_2(ruta_colaboraciones, ruta_facturas, ruta_plantilla_base, ruta_salida_final):
     """Genera la Ficha 2.2 replicando exactamente la lógica del notebook."""
-    print(f"Leyendo Excel Colaboraciones: {ruta_colaboraciones}")
-    df_colab = pd.read_excel(ruta_colaboraciones)
+    print(f"Leyendo datos: {ruta_colaboraciones}")
+    _, ext_col = os.path.splitext(ruta_colaboraciones)
+    ext_col = ext_col.lower()
+    if ext_col == '.json':
+        df_colab = pd.read_json(ruta_colaboraciones)
+    else:
+        df_colab = pd.read_excel(ruta_colaboraciones)
     
-    print(f"Leyendo Excel Facturas: {ruta_facturas}")
-    df_facturas = pd.read_excel(ruta_facturas)
+    print(f"Leyendo datos: {ruta_facturas}")
+    _, ext_fact = os.path.splitext(ruta_facturas)
+    ext_fact = ext_fact.lower()
+    if ext_fact == '.json':
+        df_facturas = pd.read_json(ruta_facturas)
+    else:
+        df_facturas = pd.read_excel(ruta_facturas)
 
     doc_master = Document()
 

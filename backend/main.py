@@ -13,7 +13,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 # Ahora sí podemos importar tus scripts mágicos
 from procesar_anexo import procesar_anexo
 from procesar_cvs import procesar_cvs
-# from main import ejecutar_generacion_word # Importaremos esto luego
+from logica_fichas import generar_ficha_2_1, generar_ficha_2_2
 
 # Inicializamos la APP (El restaurante)
 app = FastAPI(title="Generador de Fichas API", version="1.0")
@@ -93,15 +93,21 @@ def trigger_process_cvs():
 @app.get("/personal")
 def get_personal_data():
     """
-    Lee el Excel 'Excel_Personal_2.1.xlsx' y lo devuelve como JSON
-    para que la Tabla del Frontend lo pueda mostrar.
+    Lee el JSON 'Excel_Personal_2.1.json' o Excel y lo devuelve como JSON.
+    Prioriza JSON si existe.
     """
+    json_path = os.path.join(INPUT_DIR, "Excel_Personal_2.1.json")
     excel_path = os.path.join(INPUT_DIR, "Excel_Personal_2.1.xlsx")
-    if not os.path.exists(excel_path):
-        raise HTTPException(status_code=404, detail="No existe el Excel. Sube el Anexo primero.")
     
-    # Leemos el Excel, rellenamos los NaN (vacíos) con cadenas vacías ""
-    df = pd.read_excel(excel_path).fillna("")
+    if os.path.exists(json_path):
+        df = pd.read_json(json_path)
+    elif os.path.exists(excel_path):
+        df = pd.read_excel(excel_path)
+    else:
+        raise HTTPException(status_code=404, detail="No existe Excel ni JSON. Sube el Anexo primero.")
+    
+    # Rellenamos los NaN (vacíos) con cadenas vacías
+    df = df.fillna("")
     
     # Convertimos a lista de diccionarios (JSON)
     datos = df.to_dict(orient="records")
@@ -110,13 +116,73 @@ def get_personal_data():
 @app.post("/update-personal")
 async def update_personal_data(data: List[Dict[str, Any]]):
     """
-    Recibe los datos MODIFICADOS desde el Frontend y sobrescribe el Excel.
-    ¡Esto es lo que permite editar como si fuera Google Sheets!
+    Recibe los datos MODIFICADOS desde el Frontend y sobrescribe el archivo.
+    Guarda en JSON si existe, en Excel si no.
     """
     try:
         df = pd.DataFrame(data)
+        json_path = os.path.join(INPUT_DIR, "Excel_Personal_2.1.json")
         excel_path = os.path.join(INPUT_DIR, "Excel_Personal_2.1.xlsx")
-        df.to_excel(excel_path, index=False)
-        return {"status": "success", "message": "Excel actualizado correctamente"}
+        
+        if os.path.exists(json_path):
+            df.to_json(json_path, orient='records', force_ascii=False, date_format='iso')
+            formato = "JSON"
+        else:
+            df.to_excel(excel_path, index=False)
+            formato = "Excel"
+        
+        return {"status": "success", "message": f"{formato} actualizado correctamente"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/generate-fichas")
+def generate_fichas():
+    """
+    Genera las fichas Word (2.1 y 2.2) usando las plantillas y JSONs.
+    """
+    try:
+        output_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'outputs')
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Rutas de JSONs
+        json_personal = os.path.join(INPUT_DIR, "Excel_Personal_2.1.json")
+        json_colaboraciones = os.path.join(INPUT_DIR, "Excel_Colaboraciones_2.2.json")
+        json_facturas = os.path.join(INPUT_DIR, "Excel_Facturas_2.2.json")
+        
+        # Plantillas
+        plantilla_2_1 = os.path.join(INPUT_DIR, "2.1.docx")
+        plantilla_2_2 = os.path.join(INPUT_DIR, "2.2.docx")
+        
+        # Salidas
+        salida_2_1 = os.path.join(output_dir, "Ficha_2_1.docx")
+        salida_2_2 = os.path.join(output_dir, "Ficha_2_2.docx")
+        
+        generadas = []
+        errores = []
+        
+        # Generar Ficha 2.1
+        if os.path.exists(json_personal) and os.path.exists(plantilla_2_1):
+            try:
+                generar_ficha_2_1(json_personal, plantilla_2_1, salida_2_1, 2024, 'ACR')
+                generadas.append("Ficha_2_1.docx")
+            except Exception as e:
+                errores.append(f"Error en Ficha 2.1: {str(e)}")
+        
+        # Generar Ficha 2.2
+        if os.path.exists(json_colaboraciones) and os.path.exists(json_facturas) and os.path.exists(plantilla_2_2):
+            try:
+                generar_ficha_2_2(json_colaboraciones, json_facturas, plantilla_2_2, salida_2_2)
+                generadas.append("Ficha_2_2.docx")
+            except Exception as e:
+                errores.append(f"Error en Ficha 2.2: {str(e)}")
+        
+        if errores:
+            raise HTTPException(status_code=500, detail=" | ".join(errores))
+        
+        return {
+            "status": "success",
+            "message": f"Fichas generadas: {', '.join(generadas)}",
+            "files": generadas
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
