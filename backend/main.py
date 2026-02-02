@@ -14,6 +14,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 from procesar_anexo import procesar_anexo
 from procesar_cvs import procesar_cvs
 from logica_fichas import generar_ficha_2_1, generar_ficha_2_2
+from validador import ValidadorFichas, validar_antes_generar
 
 # Inicializamos la APP (El restaurante)
 app = FastAPI(title="Generador de Fichas API", version="1.0")
@@ -186,3 +187,41 @@ def generate_fichas():
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/validate")
+def validate_data():
+    """
+    Valida todos los archivos JSON generados.
+    Retorna reporte de validación con errores, advertencias y estado.
+    """
+    try:
+        archivo_personal = os.path.join(INPUT_DIR, "Excel_Personal_2.1.json")
+        archivo_colaboraciones = os.path.join(INPUT_DIR, "Excel_Colaboraciones_2.2.json")
+        archivo_facturas = os.path.join(INPUT_DIR, "Excel_Facturas_2.2.json")
+        
+        # Verificar que existan los archivos
+        if not os.path.exists(archivo_personal):
+            raise HTTPException(status_code=400, detail="Archivo Personal no existe. Ejecute /upload-anexo primero.")
+        if not os.path.exists(archivo_colaboraciones):
+            raise HTTPException(status_code=400, detail="Archivo Colaboraciones no existe. Ejecute /upload-anexo primero.")
+        if not os.path.exists(archivo_facturas):
+            raise HTTPException(status_code=400, detail="Archivo Facturas no existe. Ejecute /upload-anexo primero.")
+        
+        # Ejecutar validación
+        es_valido, resumen = validar_antes_generar(
+            archivo_personal,
+            archivo_colaboraciones,
+            archivo_facturas
+        )
+        
+        return {
+            "status": "valid" if es_valido else "invalid",
+            "exitosa": es_valido,
+            "resumen": resumen,
+            "puede_generar": es_valido
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error en validación: {str(e)}")

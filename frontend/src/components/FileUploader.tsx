@@ -1,0 +1,120 @@
+import React, { useState } from 'react';
+import { apiService } from '../api/client';
+
+interface FileUploaderProps {
+  onSuccess: (message: string) => void;
+  onError: (error: string) => void;
+  onLoading: (loading: boolean) => void;
+}
+
+export const FileUploader: React.FC<FileUploaderProps> = ({ onSuccess, onError, onLoading }) => {
+  const [anexoFile, setAnexoFile] = useState<File | null>(null);
+  const [cvFiles, setCvFiles] = useState<File[]>([]);
+
+  const handleAnexoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.name.endsWith('.xlsx')) {
+      setAnexoFile(file);
+    } else {
+      onError('⚠️ Por favor selecciona un archivo Excel (.xlsx)');
+    }
+  };
+
+  const handleCVsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const pdfFiles = files.filter(f => f.name.endsWith('.pdf'));
+    if (pdfFiles.length !== files.length) {
+      onError('⚠️ Solo se aceptan archivos PDF');
+    }
+    setCvFiles(pdfFiles);
+  };
+
+  const uploadAnexo = async () => {
+    if (!anexoFile) {
+      onError('❌ Selecciona un archivo Anexo');
+      return;
+    }
+
+    try {
+      onLoading(true);
+      const response = await apiService.uploadAnexo(anexoFile);
+      onSuccess(`✅ Anexo procesado: ${response.data.message}`);
+      setAnexoFile(null);
+    } catch (error: any) {
+      onError(`❌ Error: ${error.response?.data?.detail || error.message}`);
+    } finally {
+      onLoading(false);
+    }
+  };
+
+  const uploadCVs = async () => {
+    if (cvFiles.length === 0) {
+      onError('❌ Selecciona al menos un CV');
+      return;
+    }
+
+    try {
+      onLoading(true);
+      const response = await apiService.uploadCVs(cvFiles);
+      onSuccess(`✅ ${cvFiles.length} CV(s) cargados: ${response.data.message}`);
+      setCvFiles([]);
+    } catch (error: any) {
+      onError(`❌ Error: ${error.response?.data?.detail || error.message}`);
+    } finally {
+      onLoading(false);
+    }
+  };
+
+  return (
+    <div className="card mb-6">
+      <h2 className="text-2xl font-bold mb-4">📁 Cargar Archivos</h2>
+
+      {/* Anexo II */}
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold mb-2">Anexo II (Excel)</h3>
+        <div className="flex gap-2">
+          <input
+            type="file"
+            accept=".xlsx"
+            onChange={handleAnexoChange}
+            className="flex-1 input"
+          />
+          <button
+            onClick={uploadAnexo}
+            className="btn-primary"
+          >
+            Cargar Anexo
+          </button>
+        </div>
+        {anexoFile && <p className="text-sm text-green-600 mt-2">✓ {anexoFile.name}</p>}
+      </div>
+
+      {/* CVs */}
+      <div>
+        <h3 className="text-lg font-semibold mb-2">CVs (PDF)</h3>
+        <div className="flex gap-2">
+          <input
+            type="file"
+            multiple
+            accept=".pdf"
+            onChange={handleCVsChange}
+            className="flex-1 input"
+          />
+          <button
+            onClick={uploadCVs}
+            className="btn-secondary"
+          >
+            Cargar CVs ({cvFiles.length})
+          </button>
+        </div>
+        {cvFiles.length > 0 && (
+          <div className="text-sm text-green-600 mt-2">
+            ✓ {cvFiles.map(f => f.name).join(', ')}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default FileUploader;

@@ -16,9 +16,23 @@ El programa realiza un pipeline completo de tres pasos:
 Fichas/
 ├── backend/
 │   └── main.py                          # API FastAPI con endpoints
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── FileUploader.tsx         # Carga de Anexo y CVs
+│   │   │   ├── EditableTable.tsx        # Tabla editable de datos
+│   │   │   └── ActionsPanel.tsx         # Botones de acciones
+│   │   ├── api/
+│   │   │   └── client.ts                # Cliente HTTP Axios
+│   │   ├── App.tsx                      # Componente principal
+│   │   └── main.tsx                     # Entry point
+│   ├── package.json                     # Dependencias Node
+│   ├── vite.config.ts                   # Config Vite
+│   └── README.md                        # Documentación frontend
 ├── src/
 │   ├── __init__.py
 │   ├── main.py                          # Pipeline completo ejecutable desde consola
+│   ├── validador.py                     # Validación automática de datos
 │   ├── procesar_anexo.py               # Extrae datos del Anexo II → JSON
 │   ├── procesar_cvs.py                 # Extrae CV data de PDFs → Actualiza JSON
 │   ├── logica_fichas.py                # Genera fichas Word desde JSONs
@@ -35,6 +49,7 @@ Fichas/
 │   ├── Ficha_2_1.docx                  # Documento generado: Personal
 │   └── Ficha_2_2.docx                  # Documento generado: Colaboraciones
 ├── requirements.txt                    # Dependencias Python
+├── test_validacion.py                  # Tests de validación
 └── README.md                           # Este archivo
 ```
 
@@ -59,14 +74,56 @@ venv\Scripts\activate  # En Windows
 source venv/bin/activate  # En Linux/Mac
 ```
 
-3. **Instalar dependencias**
+3. **Instalar dependencias Backend (Python)**
 ```bash
 pip install -r requirements.txt
 ```
 
+4. **Instalar dependencias Frontend (Node.js)**
+```bash
+cd frontend
+npm install
+cd ..
+```
+
 ## 📊 Pipeline de Uso
 
-### Opción 1: Ejecución desde Consola
+### Opción 1: Interfaz Web (Frontend + Backend) ⭐ RECOMENDADO
+
+**Iniciar Backend (Terminal 1):**
+```bash
+cd backend
+python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+
+**Iniciar Frontend (Terminal 2):**
+```bash
+cd frontend
+npm run dev
+```
+
+**Acceder a la aplicación:**
+- Frontend: http://localhost:5173
+- API Docs: http://localhost:8000/docs
+
+**Flujo en la interfaz web:**
+1. **Cargar Archivos** → Sube Anexo II y CVs
+2. **Revisar Datos** → Visualiza la tabla de Personal
+3. **Editar** → Modifica celdas si es necesario
+4. **Procesar CVs** → Extrae experiencia de PDFs
+5. **Validar** → Detecta errores e inconsistencias
+6. **Generar Fichas** → Crea Ficha_2_1.docx y Ficha_2_2.docx
+
+**Ventajas de usar el Frontend:**
+- ✅ Interfaz gráfica intuitiva
+- ✅ Edición en tiempo real de tablas
+- ✅ Validación interactiva con alertas
+- ✅ Gestión visual de archivos
+- ✅ Mejor para usuarios no técnicos
+
+---
+
+### Opción 2: Ejecución desde Consola
 
 **Comando único que ejecuta todo:**
 ```bash
@@ -78,7 +135,8 @@ Este comando:
 1. Lee el archivo `inputs/Anexo_II_tipo_a_.xlsx`
 2. Extrae datos de personal y colaboraciones → **genera JSONs**
 3. Lee PDFs de `inputs/cvs/` y actualiza el JSON de Personal → **añade experiencia profesional**
-4. Genera fichas Word usando plantillas → **crea `outputs/Ficha_2_1.docx` y `outputs/Ficha_2_2.docx`**
+4. **Valida** todos los datos automáticamente
+5. Genera fichas Word usando plantillas → **crea `outputs/Ficha_2_1.docx` y `outputs/Ficha_2_2.docx`**
 
 **Salida esperada:**
 ```
@@ -97,6 +155,9 @@ Este comando:
 [2/3] Procesando CVs...
    💾 JSON actualizado: 5 perfiles procesados.
 
+[2.5/3] Validando datos...
+   ✅ LISTO PARA GENERAR FICHAS
+
 [3/3] Generando fichas con plantillas...
    ✅ Ficha 2.1 generada exitosamente
    ✅ Ficha 2.2 generada exitosamente
@@ -106,7 +167,37 @@ Este comando:
 ======================================================================
 ```
 
-### Opción 2: API REST (FastAPI)
+**Ventajas de usar Consola:**
+- ✅ Más rápido (sin interfaz gráfica)
+- ✅ Automatizable en scripts
+- ✅ Ideal para uso en servidores/cron jobs
+- ✅ Para desarrolladores y usuarios avanzados
+
+---
+
+### Opción 3: API REST (FastAPI)
+
+**Iniciar servidor:**
+```bash
+cd backend
+python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+
+**Acceder a documentación interactiva:**
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+
+**Usar endpoints directamente (curl, Postman, Python, etc.):**
+```bash
+# Validar datos
+curl -X POST http://localhost:8000/validate
+
+# Generar fichas
+curl -X POST http://localhost:8000/generate-fichas
+```
+
+---
+
 
 **Iniciar el servidor:**
 ```bash

@@ -7,6 +7,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from procesar_anexo import procesar_anexo
 from procesar_cvs import procesar_cvs
 from logica_fichas import generar_ficha_2_1, generar_ficha_2_2
+from validador import validar_antes_generar
 
 def main():
     # 1. Configuración de Directorios
@@ -36,14 +37,39 @@ def main():
     procesar_cvs()
 
     # ========================================
-    # PASO 3: Generar Fichas con Plantillas
+    # PASO 2.5: VALIDAR DATOS ANTES DE GENERAR
     # ========================================
-    print("\n[3/3] Generando fichas con plantillas...\n")
-
-    # Rutas de JSONs generados
+    print("\n[2.5/3] Validando datos antes de generar fichas...")
+    
     archivo_personal = os.path.join(INPUT_DIR, "Excel_Personal_2.1.json")
     archivo_colaboraciones = os.path.join(INPUT_DIR, "Excel_Colaboraciones_2.2.json")
     archivo_facturas = os.path.join(INPUT_DIR, "Excel_Facturas_2.2.json")
+    
+    es_valido, resumen = validar_antes_generar(
+        archivo_personal, 
+        archivo_colaboraciones, 
+        archivo_facturas
+    )
+    
+    if not es_valido:
+        print(f"\n{'🛑'*35}")
+        print(f"❌ VALIDACIÓN FALLÓ - NO SE PUEDEN GENERAR FICHAS")
+        print(f"{'🛑'*35}")
+        print(f"\nMensaje: {resumen.get('mensaje_general', 'Error desconocido')}")
+        print(f"\nPor favor, corrija los errores antes de continuar.")
+        return
+    else:
+        print(f"\n{'✅'*35}")
+        print(f"{resumen.get('mensaje_general', 'Validación OK')}")
+        print(f"{'✅'*35}\n")
+
+    # ========================================
+    # PASO 3: Generar Fichas con Plantillas
+    # ========================================
+    print("[3/3] Generando fichas con plantillas...\n")
+
+    # Rutas de JSONs (ya fueron definidas en paso 2.5)
+    # archivo_personal, archivo_colaboraciones, archivo_facturas definidos arriba
     
     # Plantillas
     plantilla_2_1 = os.path.join(INPUT_DIR, "2.1.docx")
