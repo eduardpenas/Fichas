@@ -10,6 +10,8 @@ interface FileUploaderProps {
 export const FileUploader: React.FC<FileUploaderProps> = ({ onSuccess, onError, onLoading }) => {
   const [anexoFile, setAnexoFile] = useState<File | null>(null);
   const [cvFiles, setCvFiles] = useState<File[]>([]);
+  const [anexoProgress, setAnexoProgress] = useState<number>(0);
+  const [cvsProgress, setCvsProgress] = useState<number>(0);
 
   const handleAnexoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -37,9 +39,12 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onSuccess, onError, 
 
     try {
       onLoading(true);
-      const response = await apiService.uploadAnexo(anexoFile);
+      setAnexoProgress(0);
+      const uploadFn = apiService.uploadAnexo(anexoFile);
+      const response = await uploadFn((pct:number) => setAnexoProgress(pct));
       onSuccess(`✅ Anexo procesado: ${response.data.message}`);
       setAnexoFile(null);
+      setAnexoProgress(0);
     } catch (error: any) {
       onError(`❌ Error: ${error.response?.data?.detail || error.message}`);
     } finally {
@@ -55,9 +60,12 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onSuccess, onError, 
 
     try {
       onLoading(true);
-      const response = await apiService.uploadCVs(cvFiles);
+      setCvsProgress(0);
+      const uploadFn = apiService.uploadCVs(cvFiles);
+      const response = await uploadFn((pct:number) => setCvsProgress(pct));
       onSuccess(`✅ ${cvFiles.length} CV(s) cargados: ${response.data.message}`);
       setCvFiles([]);
+      setCvsProgress(0);
     } catch (error: any) {
       onError(`❌ Error: ${error.response?.data?.detail || error.message}`);
     } finally {
@@ -87,6 +95,11 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onSuccess, onError, 
           </button>
         </div>
         {anexoFile && <p className="text-sm text-green-600 mt-2">✓ {anexoFile.name}</p>}
+        {anexoProgress > 0 && (
+          <div className="w-full bg-gray-200 rounded mt-2 h-3">
+            <div className="bg-blue-500 h-3 rounded" style={{ width: `${anexoProgress}%` }} />
+          </div>
+        )}
       </div>
 
       {/* CVs */}
@@ -110,6 +123,11 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onSuccess, onError, 
         {cvFiles.length > 0 && (
           <div className="text-sm text-green-600 mt-2">
             ✓ {cvFiles.map(f => f.name).join(', ')}
+          </div>
+        )}
+        {cvsProgress > 0 && (
+          <div className="w-full bg-gray-200 rounded mt-2 h-3">
+            <div className="bg-blue-500 h-3 rounded" style={{ width: `${cvsProgress}%` }} />
           </div>
         )}
       </div>

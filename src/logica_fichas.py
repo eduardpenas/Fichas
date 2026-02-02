@@ -265,8 +265,12 @@ def generar_ficha_2_1(ruta_excel, ruta_plantilla_base, ruta_salida_final, anio, 
 # ==========================================
 # FICHA 2.2 (Colaboraciones)
 # ==========================================
-def generar_ficha_2_2(ruta_colaboraciones, ruta_facturas, ruta_plantilla_base, ruta_salida_final):
-    """Genera la Ficha 2.2 replicando exactamente la lógica del notebook."""
+def generar_ficha_2_2(ruta_colaboraciones, ruta_facturas, ruta_plantilla_base, ruta_salida_final, cliente_nombre=None, cliente_nif=None, anio=None):
+    """Genera la Ficha 2.2 replicando exactamente la lógica del notebook.
+    Opcionalmente puede recibir `cliente_nombre` y `cliente_nif` para completar
+    los campos de entidad solicitante y NIF 2 en la ficha 2.2.
+    Opcionalmente puede recibir `anio` para establecer el año fiscal a usar.
+    """
     print(f"Leyendo datos: {ruta_colaboraciones}")
     _, ext_col = os.path.splitext(ruta_colaboraciones)
     ext_col = ext_col.lower()
@@ -349,11 +353,22 @@ def generar_ficha_2_2(ruta_colaboraciones, ruta_facturas, ruta_plantilla_base, r
                 set_cell_format(table.cell(r_t, c_t), key, font_size=11)
 
         for key, (_, _, r_v, c_v) in fields.items():
-            if key in df_colab.columns:
-                val = str(row_data[key])
-                cell = table.cell(r_v, c_v)
+            cell = table.cell(r_v, c_v)
+
+            # Valor por defecto desde el dataframe (si existe)
+            val = ""
+            if key in df_colab.columns and not pd.isna(row_data.get(key)):
+                val = str(row_data.get(key))
+
+            # Si el usuario ha proporcionado datos del cliente, los usamos
+            if key == "Entidad contratante" and cliente_nombre:
+                val = str(cliente_nombre)
+            if key == "NIF 2" and cliente_nif:
+                val = str(cliente_nif)
+
+            if val:
                 cell.text = val
-                if cell.paragraphs:
+                if cell.paragraphs and cell.paragraphs[0].runs:
                     run = cell.paragraphs[0].runs[0]
                     run.font.name = "Arial"
                     run.font.size = Pt(10)

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import FileUploader from './components/FileUploader';
 import EditableTable from './components/EditableTable';
 import ActionsPanel from './components/ActionsPanel';
+import ClientSelector from './components/ClientSelector';
 import './index.css';
 
 interface Alert {
@@ -14,6 +15,7 @@ export default function App() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [editedData, setEditedData] = useState<any[]>([]);
+  const [selectedClient, setSelectedClient] = useState<string | null>(null);
 
   const addAlert = (type: Alert['type'], message: string) => {
     const id = Date.now().toString();
@@ -31,13 +33,31 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <h1 className="text-3xl font-bold text-gray-900">📋 Gestor de Fichas</h1>
-          <p className="text-gray-600 text-sm">Sistema de gestión de datos y generación automática de fichas</p>
-        </div>
-      </header>
+      {/* Si no hay cliente seleccionado, mostrar selector */}
+      {!selectedClient ? (
+        <ClientSelector
+          onSelectClient={setSelectedClient}
+          onSuccess={(msg) => addAlert('success', msg)}
+          onError={(msg) => addAlert('error', msg)}
+          onLoading={setIsLoading}
+        />
+      ) : (
+        <>
+          {/* Header con botón de volver */}
+          <header className="bg-white shadow-sm sticky top-0 z-50">
+            <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">📋 Gestor de Fichas</h1>
+                <p className="text-gray-600 text-sm">Portal del Cliente: <strong>{selectedClient}</strong></p>
+              </div>
+              <button
+                onClick={() => setSelectedClient(null)}
+                className="btn-secondary"
+              >
+                ← Cambiar Cliente
+              </button>
+            </div>
+          </header>
 
       {/* Alerts */}
       <div className="max-w-7xl mx-auto px-6 py-4">
@@ -139,6 +159,8 @@ export default function App() {
           <p className="mt-2">API: http://localhost:8000 | Frontend: http://localhost:5173</p>
         </footer>
       </main>
+        </>
+      )}
     </div>
   );
 }
