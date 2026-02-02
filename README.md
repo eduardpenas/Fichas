@@ -431,7 +431,7 @@ generar_ficha_2_2('inputs/Excel_Colaboraciones_2.2.json', 'inputs/Excel_Facturas
 ## 📖 Más Información
 
 - **GitHub:** https://github.com/eduardpenas/Fichas
-- **Autor:** [Tu nombre]
+- **Autor:** Eduard Peñas Balart
 - **Última actualización:** Febrero 2026
 
 ---
