@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { apiService } from '../api/client';
 
 interface EditableTableProps {
+  clienteNif: string | null;
+  proyectoAcronimo?: string | null;
   title: string;
   subtitle?: string;
   onDataChange: (data: any[]) => void;
@@ -9,30 +11,36 @@ interface EditableTableProps {
   onLoading: (loading: boolean) => void;
 }
 
-export const EditableTable: React.FC<EditableTableProps> = ({
+export const EditableTable = forwardRef<any, EditableTableProps>(({
+  clienteNif,
+  proyectoAcronimo,
   title,
   subtitle,
   onDataChange,
   onError,
   onLoading,
-}) => {
+}, ref) => {
   const [data, setData] = useState<any[]>([]);
   const [columns, setColumns] = useState<string[]>([]);
   const [editingCell, setEditingCell] = useState<{ row: number; col: string } | null>(null);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [clienteNif, proyectoAcronimo]);
 
   const loadData = async () => {
     try {
       onLoading(true);
-      const response = await apiService.getPersonal();
+      console.log(`[EditableTable] Cargando datos personales para cliente: ${clienteNif} / proyecto: ${proyectoAcronimo || 'NONE'}...`);
+      const response = await apiService.getPersonal(clienteNif || undefined, proyectoAcronimo || undefined);
       const personal = response.data;
+      console.log(`[EditableTable] Datos cargados: ${personal.length} registros`);
       setData(personal);
       
       if (personal.length > 0) {
         setColumns(Object.keys(personal[0]).filter(key => key !== 'id'));
+      } else {
+        setColumns([]);
       }
     } catch (error: any) {
       onError(`❌ Error cargando datos: ${error.message}`);
@@ -40,6 +48,11 @@ export const EditableTable: React.FC<EditableTableProps> = ({
       onLoading(false);
     }
   };
+
+  // Exponer loadData mediante ref
+  useImperativeHandle(ref, () => ({
+    loadData
+  }));
 
   const handleCellChange = (rowIndex: number, column: string, value: any) => {
     const newData = [...data];
@@ -65,9 +78,9 @@ export const EditableTable: React.FC<EditableTableProps> = ({
   const handleSave = async () => {
     try {
       onLoading(true);
-      await apiService.updatePersonal(data);
-      window.location.reload();
-      // onSuccess('✅ Datos guardados exitosamente');
+      await apiService.updatePersonal(data, clienteNif || undefined);
+      // Recargar datos sin salir del cliente
+      await loadData();
     } catch (error: any) {
       onError(`❌ Error guardando datos: ${error.message}`);
     } finally {
@@ -147,10 +160,10 @@ export const EditableTable: React.FC<EditableTableProps> = ({
                             handleCellChange(rowIdx, col, e.target.value)
                           }
                           onBlur={() => setEditingCell(null)}
-                          className="input p-1"
+                          className="input p-2 text-sm"
                         />
                       ) : (
-                        <span className="text-sm">
+                        <span className="text-sm block truncate max-w-xs" title={String(row[col] ?? '')}>
                           {typeof row[col] === 'object'
                             ? JSON.stringify(row[col])
                             : String(row[col] ?? '')}
@@ -170,6 +183,8 @@ export const EditableTable: React.FC<EditableTableProps> = ({
       </p>
     </div>
   );
-};
+});
+
+EditableTable.displayName = 'EditableTable';
 
 export default EditableTable;

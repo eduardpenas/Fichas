@@ -49,23 +49,27 @@ body {
 }
 
 .table-container {
-  @apply overflow-x-auto;
+  @apply overflow-x-auto border rounded-lg;
 }
 
 .table {
   @apply w-full border-collapse;
+  min-width: 100%;
 }
 
 .table th {
-  @apply bg-gray-100 px-4 py-2 text-left font-semibold border border-gray-300;
+  @apply bg-blue-600 text-white px-3 py-3 text-left font-semibold border border-blue-500 text-sm min-w-max;
+  word-wrap: break-word;
 }
 
 .table td {
-  @apply px-4 py-2 border border-gray-300;
+  @apply px-3 py-2 border border-gray-300 text-sm min-w-max;
+  word-wrap: break-word;
+  max-width: 200px;
 }
 
 .table tr:hover {
-  @apply bg-gray-50;
+  @apply bg-blue-50;
 }
 
 .alert {

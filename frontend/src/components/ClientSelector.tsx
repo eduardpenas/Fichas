@@ -24,6 +24,7 @@ export const ClientSelector: React.FC<ClientSelectorProps> = ({
   const [newClientNif, setNewClientNif] = useState<string>('');
   const [newClientName, setNewClientName] = useState<string>('');
   const [showNewForm, setShowNewForm] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     loadClientes();
@@ -73,6 +74,20 @@ export const ClientSelector: React.FC<ClientSelectorProps> = ({
     }
   };
 
+  const handleDeleteClient = async (nif: string) => {
+    try {
+      onLoading(true);
+      await apiService.deleteClient(nif);
+      setClientes(clientes.filter(c => c.nif !== nif));
+      onSuccess(`✅ Cliente ${nif} eliminado correctamente`);
+      setClientToDelete(null);
+    } catch (error: any) {
+      onError(`❌ Error al eliminar cliente: ${error.response?.data?.detail || error.message}`);
+    } finally {
+      onLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
       <div className="max-w-4xl mx-auto">
@@ -87,21 +102,26 @@ export const ClientSelector: React.FC<ClientSelectorProps> = ({
           {clientes.map((cliente) => (
             <div
               key={cliente.nif}
-              onClick={() => onSelectClient(cliente.nif)}
-              className="bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg hover:scale-105 transition-all duration-200 border-2 border-transparent hover:border-blue-500"
+              className="bg-white rounded-lg shadow-md p-6 border-2 border-transparent hover:border-blue-500 transition-all duration-200"
             >
               <div className="text-2xl mb-2">👤</div>
               <h3 className="text-xl font-semibold text-gray-800 mb-1">{cliente.nombre}</h3>
               <p className="text-sm text-gray-600 mb-4">NIF: {cliente.nif}</p>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSelectClient(cliente.nif);
-                }}
-                className="btn-primary text-sm py-2 w-full"
-              >
-                ✏️ Abrir Portal
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => onSelectClient(cliente.nif)}
+                  className="btn-primary text-sm py-2 flex-1"
+                >
+                  ✏️ Abrir Portal
+                </button>
+                <button
+                  onClick={() => setClientToDelete(cliente.nif)}
+                  className="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-3 rounded text-sm transition-colors"
+                  title="Eliminar cliente"
+                >
+                  🗑️
+                </button>
+              </div>
             </div>
           ))}
 
@@ -186,6 +206,42 @@ export const ClientSelector: React.FC<ClientSelectorProps> = ({
             Los datos históricos se mantienen en el servidor para referencia futura.
           </p>
         </div>
+
+        {/* Modal de Confirmación de Eliminación */}
+        {clientToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+              <div className="mb-4">
+                <h3 className="text-2xl font-bold text-red-600 mb-2">⚠️ Eliminar Cliente</h3>
+                <p className="text-gray-700 mb-2">
+                  ¿Está seguro de que desea eliminar el cliente <strong>{clientes.find(c => c.nif === clientToDelete)?.nombre}</strong> ({clientToDelete})?
+                </p>
+                <p className="text-sm text-red-600 font-medium">
+                  ⚠️ Esta acción es irreversible. Se eliminarán todos los datos asociados a este cliente.
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setClientToDelete(null)}
+                  className="btn-secondary flex-1 py-2"
+                >
+                  ❌ Cancelar
+                </button>
+                <button
+                  onClick={() => {
+                    if (clientToDelete) {
+                      handleDeleteClient(clientToDelete);
+                    }
+                  }}
+                  className="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded flex-1 transition-colors"
+                >
+                  🗑️ Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

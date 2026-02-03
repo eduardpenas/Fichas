@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import FileUploader from './components/FileUploader';
 import EditableTable from './components/EditableTable';
 import ActionsPanel from './components/ActionsPanel';
 import ClientSelector from './components/ClientSelector';
+import ProjectSelector from './components/ProjectSelector';
+import { apiService } from './api/client';
 import './index.css';
 
 interface Alert {
@@ -16,6 +18,8 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [editedData, setEditedData] = useState<any[]>([]);
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
+  const [selectedProject, setSelectedProject] = useState<string | null>(null);
+  const editableTableRef = useRef<any>(null);  // ← Ref para refrescar la tabla
 
   const addAlert = (type: Alert['type'], message: string) => {
     const id = Date.now().toString();
@@ -31,9 +35,40 @@ export default function App() {
     setAlerts(prev => prev.filter(a => a.id !== id));
   };
 
+  const handleUploadComplete = () => {
+    // Refrescar la tabla después de cargar el anexo
+    console.log('[App] Upload completado, refrescando tabla...');
+    if (editableTableRef.current?.loadData) {
+      editableTableRef.current.loadData();
+    }
+  };
+
+  const handleCVsUploadComplete = async () => {
+    // Auto-procesar CVs después de subir
+    console.log(`[App] CVs subidos, iniciando procesamiento automático para cliente: ${selectedClient} / proyecto: ${selectedProject}...`);
+    try {
+      setIsLoading(true);
+      const response = await apiService.processCVs(selectedClient || undefined, selectedProject || undefined);
+      console.log('[App] CVs procesados:', response.data);
+      addAlert('success', `✅ CVs procesados automáticamente: ${response.data.message}`);
+      
+      // Refrescar la tabla para ver los datos actualizados
+      if (editableTableRef.current?.loadData) {
+        editableTableRef.current.loadData();
+      }
+    } catch (error: any) {
+      console.error('[App] Error procesando CVs:', error);
+      addAlert('error', `❌ Error procesando CVs: ${error.response?.data?.detail || error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Si no hay cliente o proyecto seleccionado, mostrar selector
+  const showProjectSelector = selectedClient && !selectedProject;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Si no hay cliente seleccionado, mostrar selector */}
       {!selectedClient ? (
         <ClientSelector
           onSelectClient={setSelectedClient}
@@ -41,20 +76,32 @@ export default function App() {
           onError={(msg) => addAlert('error', msg)}
           onLoading={setIsLoading}
         />
-      ) : (
+      ) : showProjectSelector ? (
+        <ProjectSelector
+          clienteNif={selectedClient}
+          onSelectProject={setSelectedProject}
+          onBack={() => setSelectedClient(null)}
+          onSuccess={(msg) => addAlert('success', msg)}
+          onError={(msg) => addAlert('error', msg)}
+          onLoading={setIsLoading}
+        />
+      ) : selectedClient && selectedProject ? (
         <>
           {/* Header con botón de volver */}
           <header className="bg-white shadow-sm sticky top-0 z-50">
             <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">📋 Gestor de Fichas</h1>
-                <p className="text-gray-600 text-sm">Portal del Cliente: <strong>{selectedClient}</strong></p>
+                <h1 className="text-2xl font-bold">📊 Fichas de Investigación</h1>
+                <p className="text-sm text-gray-500">Cliente: <span className="font-semibold">{selectedClient}</span> | Proyecto: <span className="font-semibold">{selectedProject}</span></p>
               </div>
               <button
-                onClick={() => setSelectedClient(null)}
+                onClick={() => {
+                  setSelectedProject(null);
+                  setSelectedClient(null);
+                }}
                 className="btn-secondary"
               >
-                ← Cambiar Cliente
+                ← Volver
               </button>
             </div>
           </header>
@@ -101,9 +148,13 @@ export default function App() {
             </div>
 
             <FileUploader
+              clienteNif={selectedClient}
+              proyectoAcronimo={selectedProject}
               onSuccess={(msg) => addAlert('success', msg)}
               onError={(msg) => addAlert('error', msg)}
               onLoading={setIsLoading}
+              onUploadComplete={handleUploadComplete}
+              onCVsUploadComplete={handleCVsUploadComplete}
             />
           </div>
         </section>
@@ -120,6 +171,9 @@ export default function App() {
             </div>
 
             <EditableTable
+              ref={editableTableRef}
+              clienteNif={selectedClient}
+              proyectoAcronimo={selectedProject}
               title="📊 Tabla de Personal (Ficha 2.1)"
               subtitle="Edita los datos haciendo clic en cada celda. Los cambios se guardan localmente."
               onDataChange={setEditedData}
@@ -141,6 +195,8 @@ export default function App() {
             </div>
 
             <ActionsPanel
+              clienteNif={selectedClient}
+              proyectoAcronimo={selectedProject}
               onSuccess={(msg) => addAlert('success', msg)}
               onError={(msg) => addAlert('warning', msg)}
               onLoading={setIsLoading}
@@ -160,7 +216,7 @@ export default function App() {
         </footer>
       </main>
         </>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -3,10 +3,15 @@ import pdfplumber
 import os
 import re
 import unicodedata
+from difflib import SequenceMatcher
 
 def normalizar_texto(texto):
     if not isinstance(texto, str): return ""
     return unicodedata.normalize('NFKD', texto.lower()).encode('ASCII', 'ignore').decode('utf-8').strip()
+
+def similitud(a, b):
+    """Calcula similitud entre dos strings (0-1)"""
+    return SequenceMatcher(None, a, b).ratio()
 
 def traducir_periodo_a_espanol(texto):
     if not isinstance(texto, str): return texto
@@ -147,25 +152,81 @@ def extraer_experiencia_pdf(ruta_pdf):
 
     return experiencias
 
-def procesar_cvs():
+def procesar_cvs(cliente_nif=None, proyecto_acronimo=None):
     print("\n--- 🕵️‍♂️ PROCESANDO CVs (CON ACTUALIZACIÓN DE PUESTO ACTUAL) ---")
     
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     INPUT_DIR = os.path.join(BASE_DIR, 'inputs')
     CVS_DIR = os.path.join(INPUT_DIR, 'cvs')
-    EXCEL_PERSONAL_XLSX = os.path.join(INPUT_DIR, "Excel_Personal_2.1.xlsx")
-    EXCEL_PERSONAL_JSON = os.path.join(INPUT_DIR, "Excel_Personal_2.1.json")
+    
+    # Determinar de dónde leer los datos
+    if cliente_nif and proyecto_acronimo:
+        # Modo proyecto: leer desde carpeta del proyecto
+        cliente_nif = cliente_nif.strip()
+        proyecto_acronimo = proyecto_acronimo.strip().upper()
+        PROYECTOS_DIR = os.path.join(BASE_DIR, 'proyectos')
+        client_dir = os.path.join(PROYECTOS_DIR, f'Cliente_{cliente_nif}')
+        project_dir = os.path.join(client_dir, proyecto_acronimo)
+        data_dir = os.path.join(project_dir, 'data')
+        EXCEL_PERSONAL_JSON = os.path.join(data_dir, "Excel_Personal_2.1.json")
+        EXCEL_PERSONAL_XLSX = os.path.join(data_dir, "Excel_Personal_2.1.xlsx")
+        print(f"🔍 Modo PROYECTO: {cliente_nif} / {proyecto_acronimo}")
+        print(f"📁 Leyendo datos desde: {data_dir}")
+    elif cliente_nif:
+        # Modo cliente: leer desde carpeta del cliente (compatibilidad hacia atrás)
+        cliente_nif = cliente_nif.strip()
+        PROYECTOS_DIR = os.path.join(BASE_DIR, 'proyectos')
+        client_dir = os.path.join(PROYECTOS_DIR, f'Cliente_{cliente_nif}')
+        data_dir = os.path.join(client_dir, 'data')
+        EXCEL_PERSONAL_JSON = os.path.join(data_dir, "Excel_Personal_2.1.json")
+        EXCEL_PERSONAL_XLSX = os.path.join(data_dir, "Excel_Personal_2.1.xlsx")
+        print(f"🔍 Modo CLIENTE: {cliente_nif}")
+        print(f"📁 Leyendo datos desde: {data_dir}")
+    else:
+        # Modo INPUT_DIR (compatibilidad con comportamiento anterior)
+        EXCEL_PERSONAL_JSON = os.path.join(INPUT_DIR, "Excel_Personal_2.1.json")
+        EXCEL_PERSONAL_XLSX = os.path.join(INPUT_DIR, "Excel_Personal_2.1.xlsx")
+        print(f"🔍 Modo INPUT_DIR (compatibilidad)")
+        print(f"📁 Leyendo datos desde: {INPUT_DIR}")
 
-    if not os.path.exists(CVS_DIR): return
-    if not (os.path.exists(EXCEL_PERSONAL_XLSX) or os.path.exists(EXCEL_PERSONAL_JSON)): return
+    print(f"📁 BASE_DIR: {BASE_DIR}")
+    print(f"📁 CVS_DIR: {CVS_DIR}")
+    print(f"📁 EXCEL_PERSONAL_JSON: {EXCEL_PERSONAL_JSON}")
+    print(f"📁 EXCEL_PERSONAL_XLSX: {EXCEL_PERSONAL_XLSX}")
+
+    # Verificar si existen CVs
+    if not os.path.exists(CVS_DIR):
+        print(f"❌ CVS_DIR NO EXISTE: {CVS_DIR}")
+        return
+    
+    archivos_cv_encontrados = os.listdir(CVS_DIR) if os.path.exists(CVS_DIR) else []
+    print(f"📄 Archivos en CVS_DIR: {len(archivos_cv_encontrados)}")
+    for f in archivos_cv_encontrados:
+        print(f"   - {f}")
+    
+    if not archivos_cv_encontrados:
+        print(f"⚠️  No hay archivos en {CVS_DIR}")
+        return
+
+    # Verificar si existe Excel Personal
+    if not (os.path.exists(EXCEL_PERSONAL_XLSX) or os.path.exists(EXCEL_PERSONAL_JSON)):
+        print(f"❌ NO EXISTE Excel Personal en:")
+        print(f"   - {EXCEL_PERSONAL_XLSX}")
+        print(f"   - {EXCEL_PERSONAL_JSON}")
+        return
 
     # Leer JSON si existe, si no leer xlsx
     if os.path.exists(EXCEL_PERSONAL_JSON):
+        print(f"✅ Leyendo JSON: {EXCEL_PERSONAL_JSON}")
         df = pd.read_json(EXCEL_PERSONAL_JSON)
         salida_json = True
     else:
+        print(f"✅ Leyendo XLSX: {EXCEL_PERSONAL_XLSX}")
         df = pd.read_excel(EXCEL_PERSONAL_XLSX)
         salida_json = False
+    
+    print(f"📊 DataFrame cargado: {len(df)} filas")
+    print(f"📋 Columnas disponibles: {list(df.columns)}")
     
     # Aseguramos columnas necesarias, incluyendo 'Puesto actual'
     cols_check = [
@@ -175,27 +236,83 @@ def procesar_cvs():
         'Puesto actual' 
     ]
     for c in cols_check:
-        if c not in df.columns: df[c] = ""
+        if c not in df.columns: 
+            print(f"   ➕ Agregando columna: {c}")
+            df[c] = ""
         df[c] = df[c].astype('object')
 
-    archivos_cv = [f for f in os.listdir(CVS_DIR) if f.lower().endswith('.pdf')]
+    archivos_cv = [f for f in archivos_cv_encontrados if f.lower().endswith('.pdf')]
     encontrados = 0
 
-    print(f"📖 Analizando {len(df)} perfiles...")
+    print(f"👤 Analizando {len(df)} perfiles...")
+    print(f"\n{'NOMBRE EXCEL':<40} | {'CV ENCONTRADO':<40} | {'COINCIDENCIAS':<15}")
+    print(f"{'-'*40}-+-{'-'*40}-+-{'-'*15}")
     
     for idx, row in df.iterrows():
-        nombre_parts = normalizar_texto(f"{row['Nombre']} {row['Apellidos']}").split()
+        nombre_completo = f"{row.get('Nombre', '')} {row.get('Apellidos', '')}"
+        nombre_norm = normalizar_texto(nombre_completo)
+        nombre_parts = nombre_norm.split()
         pdf_match = None
+        max_score = 0
+        candidatos = []
         
         for pdf in archivos_cv:
             pdf_norm = normalizar_texto(pdf)
+            pdf_parts = pdf_norm.split()
+            
+            # Estrategia 1: Coincidencias exactas de partes
             coincidencias = sum(1 for p in nombre_parts if p in pdf_norm and len(p)>2)
-            if coincidencias >= 2:
+            
+            # Estrategia 2: Similitud general (80%+)
+            similitud_total = similitud(nombre_norm, pdf_norm)
+            
+            # Estrategia 3: Al menos un apellido coincide
+            apellido1 = nombre_parts[-1] if len(nombre_parts) > 0 else ""
+            apellido2 = nombre_parts[-2] if len(nombre_parts) > 1 else ""
+            apellido_coincide = (apellido1 in pdf_norm and len(apellido1) > 2) or \
+                                 (apellido2 in pdf_norm and len(apellido2) > 2)
+            
+            # Score final
+            score = coincidencias
+            if similitud_total >= 0.8:
+                score += 10  # Bonus por similitud alta
+            if apellido_coincide:
+                score += 5   # Bonus por apellido coincidente
+            
+            # Registrar candidatos
+            candidatos.append({
+                'archivo': pdf,
+                'coincidencias': coincidencias,
+                'similitud': similitud_total,
+                'score': score,
+                'partes_pdf': pdf_parts
+            })
+            
+            # Si el score es suficientemente alto, es match
+            if score >= 2 and score > max_score:
                 pdf_match = pdf
-                break
+                max_score = score
+        
+        # Mostrar resultado
+        resultado = f"{pdf_match if pdf_match else '❌ NO ENCONTRADO':<40}"
+        score_str = f"{int(max_score)} ✅" if pdf_match else "0 ❌"
+        print(f"{nombre_completo:<40} | {resultado} | {score_str:<15}")
+        
+        # Si no encontró, mostrar candidatos cercanos
+        if not pdf_match:
+            # Ordenar candidatos por score
+            candidatos_ordenados = sorted(candidatos, key=lambda x: x['score'], reverse=True)
+            if candidatos_ordenados and candidatos_ordenados[0]['score'] > 0:
+                print(f"   💡 Candidatos cercanos (score):")
+                for c in candidatos_ordenados[:3]:
+                    if c['score'] > 0:
+                        print(f"      - {c['archivo']}: {int(c['score'])} (coincidencias: {c['coincidencias']}, similitud: {c['similitud']:.0%})")
+            continue
         
         if pdf_match:
+            print(f"      📖 Extrayendo experiencia de: {pdf_match}")
             datos = extraer_experiencia_pdf(os.path.join(CVS_DIR, pdf_match))
+            print(f"      📊 Datos extraídos: {len(datos)} experiencias")
             
             for n, exp in enumerate(datos):
                 if n >= 3: break
@@ -203,21 +320,28 @@ def procesar_cvs():
                 df.at[idx, f'EMPRESA {num}'] = str(exp['Empresa'])
                 df.at[idx, f'PUESTO {num}'] = str(exp['Puesto'])
                 df.at[idx, f'PERIODO {num}'] = str(exp['Periodo'])
+                print(f"         {num}. {exp['Empresa']} - {exp['Puesto']} ({exp['Periodo']})")
                 
                 # --- NUEVA LÓGICA: Si es la Experiencia 1, actualizamos 'Puesto actual' ---
                 if num == 1:
                     df.at[idx, 'Puesto actual'] = str(exp['Puesto'])
+                    print(f"            → Puesto actual: {exp['Puesto']}")
                 # -------------------------------------------------------------------------
             
-            if datos: encontrados += 1
+            if datos: 
+                encontrados += 1
 
     # Guardar en el mismo formato de entrada (JSON o XLSX)
     if salida_json:
+        print(f"💾 Guardando JSON: {EXCEL_PERSONAL_JSON}")
         df.to_json(EXCEL_PERSONAL_JSON, orient='records', force_ascii=False, date_format='iso')
-        print(f"\n💾 JSON actualizado: {encontrados} perfiles procesados.")
+        print(f"✅ JSON actualizado: {encontrados} perfiles procesados.")
     else:
+        print(f"💾 Guardando XLSX: {EXCEL_PERSONAL_XLSX}")
         df.to_excel(EXCEL_PERSONAL_XLSX, index=False)
-        print(f"\n💾 Excel actualizado: {encontrados} perfiles procesados.")
+        print(f"✅ Excel actualizado: {encontrados} perfiles procesados.")
+    
+    print("--- FIN PROCESAMIENTO CVs ---\n")
 
 if __name__ == "__main__":
     procesar_cvs()

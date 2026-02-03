@@ -1,9 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { apiService } from '../api/client';
 import * as docx from 'docx-preview';
 import DataEditor from './DataEditor';
 
 interface ActionsPanelProps {
+  clienteNif?: string | null;
+  proyectoAcronimo?: string | null;
   onSuccess: (message: string) => void;
   onError: (error: string) => void;
   onLoading: (loading: boolean) => void;
@@ -11,6 +13,8 @@ interface ActionsPanelProps {
 }
 
 export const ActionsPanel: React.FC<ActionsPanelProps> = ({
+  clienteNif,
+  proyectoAcronimo,
   onSuccess,
   onError,
   onLoading,
@@ -26,7 +30,68 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
   const [generationProgress, setGenerationProgress] = useState<number>(0);
   const [downloadProgress, setDownloadProgress] = useState<number>(0);
   const [showDataEditor, setShowDataEditor] = useState<'personal' | 'colaboraciones' | 'facturas' | null>(null);
+  const [isLoadingMetadata, setIsLoadingMetadata] = useState<boolean>(false);
   const previewContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Cargar metadatos cuando cambia el cliente
+  useEffect(() => {
+    if (clienteNif) {
+      loadMetadata();
+    }
+  }, [clienteNif]);
+
+  const loadMetadata = async () => {
+    if (!clienteNif) return;
+    
+    try {
+      setIsLoadingMetadata(true);
+      console.log(`🔄 Cargando metadata para cliente: ${clienteNif}`);
+      const response = await apiService.getMetadata(clienteNif);
+      const metadata = response.data;
+      
+      console.log('✅ Metadata cargada:', metadata);
+      
+      // Autocompleta los campos con los datos del Anexo
+      if (metadata.entidad_solicitante) {
+        setClienteNombre(metadata.entidad_solicitante);
+      }
+      if (metadata.nif_cliente) {
+        setClienteNIF(metadata.nif_cliente);
+      }
+      if (metadata.anio_fiscal) {
+        setAnioFiscal(metadata.anio_fiscal.toString());
+      }
+    } catch (error: any) {
+      // No es crítico si no existe metadata (cliente nuevo)
+      console.log('ℹ️ No se encontró metadata (cliente nuevo o sin Anexo procesado)');
+    } finally {
+      setIsLoadingMetadata(false);
+    }
+  };
+
+  const saveMetadata = async () => {
+    if (!clienteNif) return;
+    
+    try {
+      onLoading(true);
+      console.log(`📝 Guardando metadatos para cliente: ${clienteNif}`);
+      
+      const response = await apiService.saveMetadata({
+        cliente_nif: clienteNif,
+        entidad_solicitante: clienteNombre,
+        nif_cliente: clienteNIF,
+        anio_fiscal: parseInt(anioFiscal) || new Date().getFullYear()
+      });
+      
+      console.log('✅ Metadatos guardados:', response.data);
+      onSuccess(`✅ Datos de cliente guardados`);
+    } catch (error: any) {
+      console.error('❌ Error guardando metadatos:', error);
+      onError(`❌ Error: ${error.response?.data?.detail || error.message}`);
+    } finally {
+      onLoading(false);
+    }
+  };
   
   const validateNIF = (nif: string) => {
     if (!nif) return true;
@@ -41,9 +106,12 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
   const handleProcessCVs = async () => {
     try {
       onLoading(true);
-      const response = await apiService.processCVs();
+      console.log(`[ActionsPanel] Iniciando procesamiento de CVs para cliente: ${clienteNif} / proyecto: ${proyectoAcronimo || 'NONE'}`);
+      const response = await apiService.processCVs(clienteNif || undefined, proyectoAcronimo || undefined);
+      console.log('[ActionsPanel] Respuesta del procesamiento:', response.data);
       onSuccess(`✅ CVs procesados: ${response.data.message}`);
     } catch (error: any) {
+      console.error('[ActionsPanel] Error procesando CVs:', error);
       onError(`❌ Error: ${error.response?.data?.detail || error.message}`);
     } finally {
       onLoading(false);
@@ -53,7 +121,8 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
   const handleValidate = async () => {
     try {
       onLoading(true);
-      const response = await apiService.validate();
+      console.log(`[ActionsPanel] Iniciando validación para cliente: ${clienteNif} / proyecto: ${proyectoAcronimo || 'NONE'}`);
+      const response = await apiService.validate(clienteNif || undefined, proyectoAcronimo || undefined);
       setValidationResult(response.data);
       onValidationResult?.(response.data);
 
@@ -96,7 +165,8 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
         cliente_nif: clienteNIF || undefined,
         anio_fiscal: anioFiscal ? parseInt(anioFiscal) : undefined,
       };
-      const response = await apiService.generateFichas(payload);
+      console.log(`[ActionsPanel] Generando fichas para cliente: ${clienteNif} / proyecto: ${proyectoAcronimo || 'NONE'}`);
+      const response = await apiService.generateFichas(clienteNif || undefined, proyectoAcronimo || undefined, payload);
       clearInterval(interval);
       setGenerationProgress(95);
       onSuccess(`✅ Fichas generadas: ${response.data.message}`);
@@ -116,7 +186,8 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
   const handleDownloadFicha = async (name: string) => {
     try {
       onLoading(true);
-      const response = await apiService.downloadFicha(name);
+      console.log(`[ActionsPanel] Descargando ficha para cliente: ${clienteNif} - archivo: ${name}`);
+      const response = await apiService.downloadFicha(name, clienteNif || undefined);
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -136,7 +207,8 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
   const handlePreviewFicha = async (name: string) => {
     try {
       onLoading(true);
-      const response = await apiService.previewFichaDocx(name);
+      console.log(`[ActionsPanel] Previsualizando ficha para cliente: ${clienteNif} - archivo: ${name}`);
+      const response = await apiService.previewFichaDocx(name, clienteNif || undefined);
       setPreviewHtml(null);
       setPreviewDocx(true);
       
@@ -164,7 +236,8 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
     try {
       onLoading(true);
       setDownloadProgress(0);
-      const response = await apiService.downloadFichas((pct:number) => setDownloadProgress(pct));
+      console.log(`[ActionsPanel] Descargando ZIP de fichas para cliente: ${clienteNif}`);
+      const response = await apiService.downloadFichas(clienteNif || undefined, (pct:number) => setDownloadProgress(pct));
       
       // Crear un blob y descargarlo
       const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -192,38 +265,56 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">Entidad solicitante (Razón social)</label>
+          <label className="block text-sm font-medium text-gray-700">
+            Entidad solicitante (Razón social)
+            {isLoadingMetadata && <span className="ml-2 text-xs text-blue-500">📥 Cargando...</span>}
+          </label>
           <input
             value={clienteNombre}
             onChange={(e) => setClienteNombre(e.target.value)}
-            placeholder="Nombre del cliente"
-            className="input mt-1 w-full"
+            placeholder="Se autocompleta desde el Anexo"
+            disabled={isLoadingMetadata}
+            className="input mt-1 w-full disabled:opacity-50"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">NIF Cliente</label>
+          <label className="block text-sm font-medium text-gray-700">
+            NIF Cliente
+            {isLoadingMetadata && <span className="ml-2 text-xs text-blue-500">📥 Cargando...</span>}
+          </label>
           <input
             value={clienteNIF}
             onChange={(e) => setClienteNIF(e.target.value)}
-            placeholder="NIF"
-            className="input mt-1 w-full"
+            placeholder="Se autocompleta desde el Anexo"
+            disabled={isLoadingMetadata}
+            className="input mt-1 w-full disabled:opacity-50"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Año Fiscal</label>
+          <label className="block text-sm font-medium text-gray-700">
+            Año Fiscal
+            {isLoadingMetadata && <span className="ml-2 text-xs text-blue-500">📥 Cargando...</span>}
+          </label>
           <input
             type="number"
             value={anioFiscal}
             onChange={(e) => setAnioFiscal(e.target.value)}
-            placeholder="2024"
+            placeholder="Se autocompleta desde el Anexo"
+            disabled={isLoadingMetadata}
             min="2000"
             max="2099"
-            className="input mt-1 w-full"
+            className="input mt-1 w-full disabled:opacity-50"
           />
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <button
+          onClick={saveMetadata}
+          className="btn-secondary text-lg py-3"
+        >
+          💾 Guardar Datos
+        </button>
         <button
           onClick={handleProcessCVs}
           className="btn-secondary text-lg py-3"

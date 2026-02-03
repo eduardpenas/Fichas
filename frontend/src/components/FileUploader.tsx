@@ -2,12 +2,16 @@ import React, { useState } from 'react';
 import { apiService } from '../api/client';
 
 interface FileUploaderProps {
+  clienteNif?: string | null;
+  proyectoAcronimo?: string | null;
   onSuccess: (message: string) => void;
   onError: (error: string) => void;
   onLoading: (loading: boolean) => void;
+  onUploadComplete?: () => void;  // ← Callback para refrescar después del upload de Anexo
+  onCVsUploadComplete?: () => void;  // ← Callback para procesar después del upload de CVs
 }
 
-export const FileUploader: React.FC<FileUploaderProps> = ({ onSuccess, onError, onLoading }) => {
+export const FileUploader: React.FC<FileUploaderProps> = ({ clienteNif, proyectoAcronimo, onSuccess, onError, onLoading, onUploadComplete, onCVsUploadComplete }) => {
   const [anexoFile, setAnexoFile] = useState<File | null>(null);
   const [cvFiles, setCvFiles] = useState<File[]>([]);
   const [anexoProgress, setAnexoProgress] = useState<number>(0);
@@ -40,11 +44,18 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onSuccess, onError, 
     try {
       onLoading(true);
       setAnexoProgress(0);
-      const uploadFn = apiService.uploadAnexo(anexoFile);
+      console.log(`[FileUploader] Subiendo anexo para cliente: ${clienteNif} / proyecto: ${proyectoAcronimo || 'NONE'}`);
+      const uploadFn = apiService.uploadAnexo(anexoFile, clienteNif || undefined, proyectoAcronimo || undefined);
       const response = await uploadFn((pct:number) => setAnexoProgress(pct));
       onSuccess(`✅ Anexo procesado: ${response.data.message}`);
       setAnexoFile(null);
       setAnexoProgress(0);
+      
+      // 🔄 Refrescar datos automáticamente después del upload
+      console.log('[FileUploader] Anexo cargado exitosamente, refrescando datos...');
+      if (onUploadComplete) {
+        onUploadComplete();
+      }
     } catch (error: any) {
       onError(`❌ Error: ${error.response?.data?.detail || error.message}`);
     } finally {
@@ -61,12 +72,27 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onSuccess, onError, 
     try {
       onLoading(true);
       setCvsProgress(0);
-      const uploadFn = apiService.uploadCVs(cvFiles);
-      const response = await uploadFn((pct:number) => setCvsProgress(pct));
-      onSuccess(`✅ ${cvFiles.length} CV(s) cargados: ${response.data.message}`);
+      console.log(`[FileUploader] Subiendo ${cvFiles.length} CV(s) para cliente: ${clienteNif} / proyecto: ${proyectoAcronimo || 'NONE'}...`);
+      cvFiles.forEach((f, i) => console.log(`   [${i+1}] ${f.name} (${f.size} bytes)`));
+      
+      const uploadFn = apiService.uploadCVs(cvFiles, clienteNif || undefined, proyectoAcronimo || undefined);
+      const response = await uploadFn((pct:number) => {
+        console.log(`[FileUploader] Upload Progress: ${pct}%`);
+        setCvsProgress(pct);
+      });
+      
+      console.log('[FileUploader] Upload response:', response.data);
+      onSuccess(`✅ ${cvFiles.length} CV(s) cargados. Procesando automáticamente...`);
       setCvFiles([]);
       setCvsProgress(0);
+      
+      // 🔄 Procesar CVs automáticamente después de subir
+      console.log('[FileUploader] CVs cargados, llamando callback para procesar...');
+      if (onCVsUploadComplete) {
+        onCVsUploadComplete();
+      }
     } catch (error: any) {
+      console.error('[FileUploader] Error:', error);
       onError(`❌ Error: ${error.response?.data?.detail || error.message}`);
     } finally {
       onLoading(false);
