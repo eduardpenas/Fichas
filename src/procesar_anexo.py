@@ -146,93 +146,179 @@ def procesar_anexo(archivo_especifico=None, cliente_nif=None, proyecto_acronimo=
         print(f"   {traceback.format_exc()}")
 
     # ==========================================
-    # 2. PROCESAR PERSONAL (Ficha 2.1)
+    # 2. PROCESAR PERSONAL (Ficha 2.1) - VERSIÓN ROBUSTA
     # ==========================================
     try:
         print("👤 Procesando Personal...")
         df_p = pd.read_excel(archivo_anexo, sheet_name="Personal", header=[12, 13])
         
-        print(f"   📋 Columnas detectadas: {list(df_p.columns)}")
-        print(f"   📊 Dimensiones: {df_p.shape}")
+        print(f"   Dimensiones originales: {df_p.shape[0]} filas x {df_p.shape[1]} columnas")
+        print(f"   Año fiscal objetivo: {anio_fiscal}")
         
+        # --- PASO 1: ENCONTRAR COLUMNAS ---
         col_nombre = None
-        col_horas = None
-        col_coste = None
         col_titulacion = None
-
+        col_horas_it = None
+        col_coste_it = None
+        
+        print(f"   Buscando columnas de interés...")
+        
         for col in df_p.columns:
-            col_0 = str(col[0]).lower()
-            col_1 = str(col[1]).lower() if len(col) > 1 else ""
-            
-            if "nombre" in col_0: col_nombre = col
-            if "titulación" in col_0 or "titulacion" in col_0: col_titulacion = col
-            
-            # Convertir columna de manera segura
             try:
-                col_0_str = str(col[0]).strip() if pd.notna(col[0]) else ""
-                col_1_str = str(col[1]).strip() if pd.notna(col[1]) else ""
-            except:
+                # Extraer nivel 0 (año o nombre de campo) y nivel 1 (concepto)
+                nivel_0 = str(col[0]).strip() if pd.notna(col[0]) else ""
+                nivel_1 = str(col[1]).strip() if pd.notna(col[1]) else ""
+                
+                # Convertir a minúsculas para búsqueda insensible a mayúsculas
+                nivel_0_lower = nivel_0.lower()
+                nivel_1_lower = nivel_1.lower()
+                
+                # Buscar columna de Nombre (sin importar el nivel)
+                if "nombre" in nivel_0_lower or "nombre" in nivel_1_lower:
+                    col_nombre = col
+                    print(f"      OK - Nombre encontrado: {col}")
+                
+                # Buscar columna de Titulación
+                if "titulación" in nivel_0_lower or "titulacion" in nivel_0_lower:
+                    col_titulacion = col
+                    print(f"      OK - Titulación encontrada: {col}")
+                
+                # Buscar columnas del AÑO FISCAL ESPECÍFICO
+                try:
+                    anio_num = int(float(nivel_0))
+                    if anio_num == anio_fiscal:
+                        # Buscar Horas IT para este año
+                        if "horas" in nivel_1_lower and "it" in nivel_1_lower:
+                            col_horas_it = col
+                            print(f"      OK - Horas IT ({anio_fiscal}) encontradas: {col}")
+                        
+                        # Buscar Coste IT para este año
+                        if ("coste" in nivel_1_lower or "gasto" in nivel_1_lower) and "it" in nivel_1_lower:
+                            col_coste_it = col
+                            print(f"      OK - Coste IT ({anio_fiscal}) encontrado: {col}")
+                except (ValueError, TypeError):
+                    pass
+            
+            except Exception as e:
+                print(f"      WARN - Error procesando columna {col}: {e}")
                 continue
+        
+        # --- PASO 2: VALIDAR QUE TENEMOS LAS COLUMNAS NECESARIAS ---
+        if not col_nombre:
+            print(f"   WARN - No se encontró columna 'Nombre'")
+        if not col_horas_it or not col_coste_it:
+            print(f"   WARN - No se encontraron Horas/Coste IT para año {anio_fiscal}")
+            print(f"      Anos disponibles: {[str(c[0]) for c in df_p.columns if str(c[0]).isdigit()]}")
+        
+        # --- PASO 3: EXTRAER Y PROCESAR DATOS ---
+        if col_nombre and col_horas_it and col_coste_it:
+            print(f"   Extrayendo datos...")
             
-            # Detectar columnas por año fiscal
-            try:
-                col_0_num = int(float(col_0_str)) if col_0_str.isdigit() or (col_0_str.replace('.', '', 1).isdigit()) else None
-                if col_0_num == anio_fiscal:
-                    sub_col = col_1_str.lower()
-                    if "horas" in sub_col and "it" in sub_col:
-                        col_horas = col
-                    elif ("coste" in sub_col or "gasto" in sub_col) and "it" in sub_col:
-                        col_coste = col
-            except:
-                pass
-
-        if col_nombre and col_horas and col_coste:
+            # Crear DataFrame con columnas necesarias
             df_res = pd.DataFrame({
-                "nombres_completos": df_p[col_nombre],
+                "nombre_completo": df_p[col_nombre],
                 "titulacion": df_p[col_titulacion] if col_titulacion else "",
-                "horas": df_p[col_horas].fillna(0),
-                "coste": df_p[col_coste].fillna(0)
+                "horas_it": pd.to_numeric(df_p[col_horas_it], errors='coerce').fillna(0),
+                "coste_it": pd.to_numeric(df_p[col_coste_it], errors='coerce').fillna(0)
             })
             
-            df_res = df_res[df_res["nombres_completos"].notna()]
-            df_res = df_res[df_res["coste"] > 0]
+            print(f"   Registros antes de filtrar: {len(df_res)}")
             
-            df_res["coste_horario"] = (df_res["coste"] / df_res["horas"]).replace([float('inf')], 0).fillna(0).round(2)
+            # Filtrar registros válidos
+            # - Nombre no vacío
+            # - Al menos horas o coste > 0
+            df_res = df_res[df_res["nombre_completo"].notna()]
+            df_res = df_res[df_res["nombre_completo"].astype(str).str.strip() != ""]
+            df_res = df_res[(df_res["horas_it"] > 0) | (df_res["coste_it"] > 0)]
             
-            # Aplicar separación de nombres con expand=True para siempre obtener DataFrame
-            split_names = df_res["nombres_completos"].apply(separar_nombre_completo, expand=True)
+            print(f"   Registros después de filtrar: {len(df_res)}")
             
-            # Asegurar que las columnas existan (incluso si el DataFrame está vacío)
-            if "Nombre" not in split_names.columns:
-                split_names["Nombre"] = ""
-            if "Apellidos" not in split_names.columns:
-                split_names["Apellidos"] = ""
-            
-            df_final_p = pd.DataFrame()
-            df_final_p["Nombre"] = split_names["Nombre"]
-            df_final_p["Apellidos"] = split_names["Apellidos"]
-            df_final_p["Titulación 1"] = df_res["titulacion"]
-            df_final_p["Titulación 2"] = ""
-            df_final_p["Coste horario (€/hora)"] = df_res["coste_horario"]
-            df_final_p["Horas totales"] = df_res["horas"]
-            df_final_p["Coste total (€)"] = df_res["coste"]
-            df_final_p["Coste IT (€)"] = df_res["coste"]
-            df_final_p["Horas IT"] = df_res["horas"]
-            
-            for c in ["Departamento", "Puesto actual", "Coste I+D (€)", "Horas I+D", 
-                      "EMPRESA 1", "PERIODO 1", "PUESTO 1", 
-                      "EMPRESA 2", "PERIODO 2", "PUESTO 2", 
-                      "EMPRESA 3", "PERIODO 3", "PUESTO 3"]:
-                df_final_p[c] = ""
-
+            if len(df_res) > 0:
+                # Calcular coste horario (evitar división por cero)
+                df_res["coste_horario"] = (df_res["coste_it"] / df_res["horas_it"]).replace([float('inf'), -float('inf')], 0).fillna(0).round(2)
+                
+                # Separar nombre y apellidos de forma simple
+                nombres = []
+                apellidos = []
+                for nombre_completo in df_res["nombre_completo"]:
+                    resultado = separar_nombre_completo(nombre_completo)
+                    nombres.append(resultado.get("Nombre", ""))
+                    apellidos.append(resultado.get("Apellidos", ""))
+                
+                # Crear DataFrame final con estructura esperada
+                df_final_p = pd.DataFrame()
+                df_final_p["Nombre"] = nombres
+                df_final_p["Apellidos"] = apellidos
+                df_final_p["Titulación 1"] = [str(t).replace("nan", "") if pd.notna(t) else "" for t in df_res["titulacion"]]
+                df_final_p["Titulación 2"] = ""
+                df_final_p["Coste horario (€/hora)"] = df_res["coste_horario"].values
+                df_final_p["Horas totales"] = df_res["horas_it"].values
+                df_final_p["Coste total (€)"] = df_res["coste_it"].values
+                df_final_p["Coste IT (€)"] = df_res["coste_it"].values
+                df_final_p["Horas IT"] = df_res["horas_it"].values
+                
+                # Agregar columnas opcionales vacías
+                for col in ["Departamento", "Puesto actual", "Coste I+D (€)", "Horas I+D",
+                            "EMPRESA 1", "PERIODO 1", "PUESTO 1",
+                            "EMPRESA 2", "PERIODO 2", "PUESTO 2",
+                            "EMPRESA 3", "PERIODO 3", "PUESTO 3"]:
+                    df_final_p[col] = ""
+                
+                # Guardar JSON
+                json_path_p = os.path.join(output_dir, "Excel_Personal_2.1.json")
+                df_final_p.to_json(json_path_p, orient='records', force_ascii=False, date_format='iso')
+                print(f"   OK - Personal generado: {len(df_final_p)} personas")
+                print(f"   Archivo: {os.path.basename(json_path_p)}")
+            else:
+                print(f"   WARN - No hay registros validos con datos en el anio {anio_fiscal}")
+                # Crear archivo vacío
+                df_final_p = pd.DataFrame(columns=[
+                    "Nombre", "Apellidos", "Titulación 1", "Titulación 2",
+                    "Coste horario (€/hora)", "Horas totales", "Coste total (€)",
+                    "Coste IT (€)", "Horas IT", "Departamento", "Puesto actual",
+                    "Coste I+D (€)", "Horas I+D",
+                    "EMPRESA 1", "PERIODO 1", "PUESTO 1",
+                    "EMPRESA 2", "PERIODO 2", "PUESTO 2",
+                    "EMPRESA 3", "PERIODO 3", "PUESTO 3"
+                ])
+                json_path_p = os.path.join(output_dir, "Excel_Personal_2.1.json")
+                df_final_p.to_json(json_path_p, orient='records', force_ascii=False, date_format='iso')
+                print(f"   Archivo vacio creado: {os.path.basename(json_path_p)}")
+        else:
+            print(f"   WARN - No se encontraron las columnas necesarias para procesar Personal")
+            # Crear archivo vacío con estructura
+            df_final_p = pd.DataFrame(columns=[
+                "Nombre", "Apellidos", "Titulación 1", "Titulación 2",
+                "Coste horario (€/hora)", "Horas totales", "Coste total (€)",
+                "Coste IT (€)", "Horas IT", "Departamento", "Puesto actual",
+                "Coste I+D (€)", "Horas I+D",
+                "EMPRESA 1", "PERIODO 1", "PUESTO 1",
+                "EMPRESA 2", "PERIODO 2", "PUESTO 2",
+                "EMPRESA 3", "PERIODO 3", "PUESTO 3"
+            ])
             json_path_p = os.path.join(output_dir, "Excel_Personal_2.1.json")
             df_final_p.to_json(json_path_p, orient='records', force_ascii=False, date_format='iso')
-            print(f"   ✅ Personal generado: {len(df_final_p)} personas (JSON: {os.path.basename(json_path_p)})")
-        else:
-            print("   ⚠️ No se encontraron columnas de Personal para el año detectado.")
+            print(f"   Archivo vacio creado: {os.path.basename(json_path_p)}")
 
     except Exception as e:
-        print(f"   ❌ Error en Personal: {e}")
+        print(f"   ERROR - Procesando Personal: {e}")
+        import traceback
+        print(f"   {traceback.format_exc()}")
+        # Crear archivo vacío para evitar fallos posteriores
+        try:
+            df_final_p = pd.DataFrame(columns=[
+                "Nombre", "Apellidos", "Titulación 1", "Titulación 2",
+                "Coste horario (€/hora)", "Horas totales", "Coste total (€)",
+                "Coste IT (€)", "Horas IT", "Departamento", "Puesto actual",
+                "Coste I+D (€)", "Horas I+D",
+                "EMPRESA 1", "PERIODO 1", "PUESTO 1",
+                "EMPRESA 2", "PERIODO 2", "PUESTO 2",
+                "EMPRESA 3", "PERIODO 3", "PUESTO 3"
+            ])
+            json_path_p = os.path.join(output_dir, "Excel_Personal_2.1.json")
+            df_final_p.to_json(json_path_p, orient='records', force_ascii=False, date_format='iso')
+        except:
+            pass
 
     # ==========================================
     # 3. PROCESAR COLABORACIONES Y FACTURAS (Ficha 2.2)
