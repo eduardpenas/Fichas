@@ -27,6 +27,31 @@
 
 ---
 
+## 🆕 DOCUMENTACIÓN NUEVA - Procesamiento Robusto de Excel
+
+| Documento | Descripción | Para Quién |
+|-----------|-----------|-----------|
+| [SESSION_ROBUST_EXCEL.md](SESSION_ROBUST_EXCEL.md) | Resumen de la sesión de mejoras | Todos |
+| [MEJORAS_PROCESAMIENTO_EXCEL.md](MEJORAS_PROCESAMIENTO_EXCEL.md) | Análisis técnico de mejoras | Desarrolladores |
+| [GUIA_PROCESAMIENTO_EXCEL.md](GUIA_PROCESAMIENTO_EXCEL.md) | Guía visual y ejemplos | Usuarios/Desarrolladores |
+| [SUMMARY_ROBUST_PROCESSING.md](SUMMARY_ROBUST_PROCESSING.md) | Resumen ejecutivo | Gerentes/Stakeholders |
+| [INSTRUCCIONES_USO.md](INSTRUCCIONES_USO.md) | Instrucciones prácticas paso a paso | Usuarios finales |
+
+**¿QUÉ PASÓ?**
+- ✅ Procesamiento de Personal Sheet ahora es **robusto**
+- ✅ Detecta automáticamente el año fiscal
+- ✅ Búsqueda flexible de columnas (case-insensitive)
+- ✅ Validación inteligente antes de procesar
+- ✅ Logs detallados para debugging
+- ✅ Extrae 29 personas correctamente del Excel
+
+**¿QUIÉN DEBE LEER?**
+- **Usuarios finales**: [INSTRUCCIONES_USO.md](INSTRUCCIONES_USO.md)
+- **Desarrolladores**: [MEJORAS_PROCESAMIENTO_EXCEL.md](MEJORAS_PROCESAMIENTO_EXCEL.md)
+- **Gerentes**: [SESSION_ROBUST_EXCEL.md](SESSION_ROBUST_EXCEL.md) + [SUMMARY_ROBUST_PROCESSING.md](SUMMARY_ROBUST_PROCESSING.md)
+
+---
+
 ## 🎯 POR OBJETIVO
 
 ### 🎨 Quiero USAR la interfaz web
