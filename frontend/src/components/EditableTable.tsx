@@ -31,18 +31,34 @@ export const EditableTable = forwardRef<any, EditableTableProps>(({
   const loadData = async () => {
     try {
       onLoading(true);
-      console.log(`[EditableTable] Cargando datos personales para cliente: ${clienteNif} / proyecto: ${proyectoAcronimo || 'NONE'}...`);
+      console.log(`\n============================================================`);
+      console.log(`📊 EDITABLETABLE - LOADDATA INICIADO`);
+      console.log(`   cliente_nif: ${clienteNif}`);
+      console.log(`   proyecto: ${proyectoAcronimo}`);
+      console.log(`============================================================`);
+      
       const response = await apiService.getPersonal(clienteNif || undefined, proyectoAcronimo || undefined);
       const personal = response.data;
-      console.log(`[EditableTable] Datos cargados: ${personal.length} registros`);
+      
+      console.log(`✅ Datos obtenidos del backend: ${personal.length} registros`);
+      if (personal.length > 0) {
+        console.log(`   Primer registro:`, personal[0]);
+      }
+      
       setData(personal);
       
       if (personal.length > 0) {
-        setColumns(Object.keys(personal[0]).filter(key => key !== 'id'));
+        const cols = Object.keys(personal[0]).filter(key => key !== 'id');
+        console.log(`   Columnas: ${cols.length} - ${cols.join(', ').substring(0, 50)}...`);
+        setColumns(cols);
       } else {
+        console.log(`   ⚠️ Sin datos, limpiando columnas`);
         setColumns([]);
       }
+      
+      console.log(`============================================================\n`);
     } catch (error: any) {
+      console.error(`❌ Error cargando datos:`, error);
       onError(`❌ Error cargando datos: ${error.message}`);
     } finally {
       onLoading(false);
@@ -78,7 +94,7 @@ export const EditableTable = forwardRef<any, EditableTableProps>(({
   const handleSave = async () => {
     try {
       onLoading(true);
-      await apiService.updatePersonal(data, clienteNif || undefined);
+      await apiService.updatePersonal(data, clienteNif || undefined, proyectoAcronimo || undefined);
       // Recargar datos sin salir del cliente
       await loadData();
     } catch (error: any) {

@@ -18,13 +18,19 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [editedData, setEditedData] = useState<any[]>([]);
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
+  const [selectedClientName, setSelectedClientName] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
+  const [uploadRefreshTrigger, setUploadRefreshTrigger] = useState<number>(0);
   const editableTableRef = useRef<any>(null);  // ← Ref para refrescar la tabla
 
   const addAlert = (type: Alert['type'], message: string) => {
     const id = Date.now().toString();
     const alert: Alert = { id, type, message };
-    setAlerts(prev => [alert, ...prev]);
+    console.log(`[App] 📢 addAlert - type: ${type}, message: "${message}"`);
+    setAlerts(prev => {
+      console.log(`[App] 📊 alerts state actualizado:`, [alert, ...prev]);
+      return [alert, ...prev];
+    });
 
     setTimeout(() => {
       setAlerts(prev => prev.filter(a => a.id !== id));
@@ -36,11 +42,28 @@ export default function App() {
   };
 
   const handleUploadComplete = () => {
-    // Refrescar la tabla después de cargar el anexo
-    console.log('[App] Upload completado, refrescando tabla...');
+    // Refrescar completamente después de cargar el anexo
+    console.log('\n' + '='.repeat(60));
+    console.log('[App] 📤 UPLOAD COMPLETADO');
+    console.log(`    Cliente: ${selectedClient}`);
+    console.log(`    Proyecto: ${selectedProject}`);
+    console.log('='.repeat(60));
+    
+    console.log('[App] ♻️ Forzando recarga de datos...');
+    
+    // Forzar recarga de tabla
     if (editableTableRef.current?.loadData) {
+      console.log('[App] 📊 Recargando tabla...');
       editableTableRef.current.loadData();
     }
+    
+    // Forzar recarga de fichas disponibles
+    console.log('[App] 🔍 Re-verificando fichas disponibles...');
+    setUploadRefreshTrigger(prev => {
+      const newValue = prev + 1;
+      console.log(`[App] 📍 uploadRefreshTrigger: ${prev} → ${newValue}`);
+      return newValue;
+    });
   };
 
   const handleCVsUploadComplete = async () => {
@@ -71,7 +94,10 @@ export default function App() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {!selectedClient ? (
         <ClientSelector
-          onSelectClient={setSelectedClient}
+          onSelectClient={(nif, name) => {
+            setSelectedClient(nif);
+            setSelectedClientName(name || nif);
+          }}
           onSuccess={(msg) => addAlert('success', msg)}
           onError={(msg) => addAlert('error', msg)}
           onLoading={setIsLoading}
@@ -92,12 +118,13 @@ export default function App() {
             <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
               <div>
                 <h1 className="text-2xl font-bold">📊 Fichas de Investigación</h1>
-                <p className="text-sm text-gray-500">Cliente: <span className="font-semibold">{selectedClient}</span> | Proyecto: <span className="font-semibold">{selectedProject}</span></p>
+                <p className="text-sm text-gray-500">Cliente: <span className="font-semibold">{selectedClientName || selectedClient}</span> | Proyecto: <span className="font-semibold">{selectedProject}</span></p>
               </div>
               <button
                 onClick={() => {
                   setSelectedProject(null);
                   setSelectedClient(null);
+                  setSelectedClientName(null);
                 }}
                 className="btn-secondary"
               >
@@ -106,12 +133,12 @@ export default function App() {
             </div>
           </header>
 
-      {/* Alerts */}
-      <div className="max-w-7xl mx-auto px-6 py-4">
+      {/* Alerts - Fixed Position */}
+      <div className="fixed top-0 left-0 right-0 z-50 max-w-7xl mx-auto px-6 py-4">
         {alerts.map(alert => (
           <div
             key={alert.id}
-            className={`alert alert-${alert.type} flex justify-between items-center`}
+            className={`alert alert-${alert.type} flex justify-between items-center mb-2`}
           >
             <span>{alert.message}</span>
             <button
@@ -196,7 +223,9 @@ export default function App() {
 
             <ActionsPanel
               clienteNif={selectedClient}
+              clienteNombre={selectedClientName}
               proyectoAcronimo={selectedProject}
+              refreshTrigger={uploadRefreshTrigger}
               onSuccess={(msg) => addAlert('success', msg)}
               onError={(msg) => addAlert('warning', msg)}
               onLoading={setIsLoading}

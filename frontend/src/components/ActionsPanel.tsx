@@ -5,7 +5,9 @@ import DataEditor from './DataEditor';
 
 interface ActionsPanelProps {
   clienteNif?: string | null;
+  clienteNombre?: string | null;
   proyectoAcronimo?: string | null;
+  refreshTrigger?: number; // Se usa para forzar refresh desde el padre
   onSuccess: (message: string) => void;
   onError: (error: string) => void;
   onLoading: (loading: boolean) => void;
@@ -14,7 +16,9 @@ interface ActionsPanelProps {
 
 export const ActionsPanel: React.FC<ActionsPanelProps> = ({
   clienteNif,
+  clienteNombre: clienteNombreProps,
   proyectoAcronimo,
+  refreshTrigger,
   onSuccess,
   onError,
   onLoading,
@@ -23,7 +27,7 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
   const [validationResult, setValidationResult] = useState<any>(null);
   const [clienteNombre, setClienteNombre] = useState<string>('');
   const [clienteNIF, setClienteNIF] = useState<string>('');
-  const [anioFiscal, setAnioFiscal] = useState<string>(new Date().getFullYear().toString());
+  const [anioFiscal, setAnioFiscal] = useState<string>('2025');
   const [generatedFiles, setGeneratedFiles] = useState<string[]>([]);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [previewDocx, setPreviewDocx] = useState<boolean>(false);
@@ -31,14 +35,99 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
   const [downloadProgress, setDownloadProgress] = useState<number>(0);
   const [showDataEditor, setShowDataEditor] = useState<'personal' | 'colaboraciones' | 'facturas' | null>(null);
   const [isLoadingMetadata, setIsLoadingMetadata] = useState<boolean>(false);
+  const [generationAvisos, setGenerationAvisos] = useState<string[]>([]);
+  const [puede_generar_2_1, setPuedeGenerar2_1] = useState<boolean>(false);
+  const [puede_generar_2_2, setPuedeGenerar2_2] = useState<boolean>(false);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   
-  // Cargar metadatos cuando cambia el cliente
+  // Verificar fichas disponibles cuando cambian los datos
+  const checkAvailableFichas = async () => {
+    try {
+      console.log(`\n✅ CHECK-AVAILABLE-FICHAS INICIADO`);
+      console.log(`   Cliente: ${clienteNif} / Proyecto: ${proyectoAcronimo || 'NONE'}`);
+      
+      const response = await apiService.checkAvailableFichas(clienteNif || undefined, proyectoAcronimo || undefined);
+      
+      if (response.data.status === 'success') {
+        console.log(`   📊 Respuesta del servidor:`);
+        console.log(`      - Puede generar 2.1: ${response.data.puede_generar_2_1}`);
+        console.log(`      - Puede generar 2.2: ${response.data.puede_generar_2_2}`);
+        console.log(`      - Personal: ${response.data.datos.personal} registros`);
+        console.log(`      - Colaboraciones: ${response.data.datos.colaboraciones} registros`);
+        console.log(`      - Facturas: ${response.data.datos.facturas} registros`);
+        
+        setPuedeGenerar2_1(response.data.puede_generar_2_1);
+        setPuedeGenerar2_2(response.data.puede_generar_2_2);
+        
+        console.log(`   ✅ Estados actualizados`);
+      }
+    } catch (error) {
+      console.error('❌ Error verificando fichas disponibles:', error);
+      setPuedeGenerar2_1(false);
+      setPuedeGenerar2_2(false);
+    }
+  };
+  
+  // Cargar metadatos y verificar fichas cuando cambia el cliente
   useEffect(() => {
     if (clienteNif) {
       loadMetadata();
+      checkAvailableFichas();
+      // Autocompletar nombre del cliente si viene del selector
+      if (clienteNombreProps) {
+        setClienteNombre(clienteNombreProps);
+      }
     }
-  }, [clienteNif]);
+  }, [clienteNif, clienteNombreProps, proyectoAcronimo]);
+
+  // Verificar fichas disponibles cada 2 segundos mientras no haya datos
+  // Esto ayuda a detectar cuando se procesa el Anexo
+  useEffect(() => {
+    if (!puede_generar_2_1 && !puede_generar_2_2 && clienteNif && proyectoAcronimo) {
+      const interval = setInterval(() => {
+        console.log('🔄 Re-verificando fichas disponibles...');
+        checkAvailableFichas();
+      }, 1000);  // Cambié a 1 segundo para ser más rápido
+      
+      return () => clearInterval(interval);
+    }
+  }, [clienteNif, proyectoAcronimo, puede_generar_2_1, puede_generar_2_2]);
+
+  // Forzar recarga cuando se dispara refreshTrigger (p.ej., después de cargar Anexo)
+  useEffect(() => {
+    if (refreshTrigger !== undefined && refreshTrigger !== null && refreshTrigger > 0) {
+      console.log(`\n${'='.repeat(60)}`);
+      console.log(`🔄 REFRESH TRIGGER DETECTADO: ${refreshTrigger}`);
+      console.log(`   Cliente: ${clienteNif}`);
+      console.log(`   Proyecto: ${proyectoAcronimo}`);
+      console.log(`${'='.repeat(60)}`);
+      
+      console.log('🔄 Iniciando verificaciones múltiples...');
+      // Hacer múltiples verificaciones en rápida sucesión
+      checkAvailableFichas();
+      
+      const timeout1 = setTimeout(() => {
+        console.log('   🔄 Verificación #2...');
+        checkAvailableFichas();
+      }, 300);
+      
+      const timeout2 = setTimeout(() => {
+        console.log('   🔄 Verificación #3...');
+        checkAvailableFichas();
+      }, 600);
+      
+      const timeout3 = setTimeout(() => {
+        console.log('   🔄 Verificación #4...');
+        checkAvailableFichas();
+      }, 1000);
+      
+      return () => {
+        clearTimeout(timeout1);
+        clearTimeout(timeout2);
+        clearTimeout(timeout3);
+      };
+    }
+  }, [refreshTrigger]);
 
   const loadMetadata = async () => {
     if (!clienteNif) return;
@@ -60,10 +149,15 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
       }
       if (metadata.anio_fiscal) {
         setAnioFiscal(metadata.anio_fiscal.toString());
+      } else {
+        // Si no hay año fiscal en metadata, usar 2025
+        setAnioFiscal('2025');
       }
     } catch (error: any) {
       // No es crítico si no existe metadata (cliente nuevo)
       console.log('ℹ️ No se encontró metadata (cliente nuevo o sin Anexo procesado)');
+      // Asegurar que el año fiscal por defecto sea 2025
+      setAnioFiscal('2025');
     } finally {
       setIsLoadingMetadata(false);
     }
@@ -169,6 +263,16 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
       const response = await apiService.generateFichas(clienteNif || undefined, proyectoAcronimo || undefined, payload);
       clearInterval(interval);
       setGenerationProgress(95);
+      
+      // Capturar avisos y disponibilidad de fichas
+      const avisos = response.data.avisos || [];
+      const puede2_1 = response.data.puede_generar_2_1 || false;
+      const puede2_2 = response.data.puede_generar_2_2 || false;
+      
+      setGenerationAvisos(avisos);
+      setPuedeGenerar2_1(puede2_1);
+      setPuedeGenerar2_2(puede2_2);
+      
       onSuccess(`✅ Fichas generadas: ${response.data.message}`);
       if (response.data.files && Array.isArray(response.data.files)) {
         setGeneratedFiles(response.data.files);
@@ -178,6 +282,95 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
     } catch (error: any) {
       onError(`❌ Error: ${error.response?.data?.detail || error.message}`);
       setGenerationProgress(0);
+      setGenerationAvisos([]);
+      setPuedeGenerar2_1(false);
+      setPuedeGenerar2_2(false);
+    } finally {
+      onLoading(false);
+    }
+  };
+
+  const handleGenerarFicha2_1Solo = async () => {
+    // Si no hay datos, mostrar aviso
+    if (!puede_generar_2_1) {
+      onError('⚠️ No hay datos de personal. Cargue un Anexo o edite los datos.');
+      setGenerationAvisos(['No hay datos de personal']);
+      return;
+    }
+
+    try {
+      if (clienteNIF && !validateNIF(clienteNIF)) {
+        onError('❌ NIF inválido');
+        return;
+      }
+
+      onLoading(true);
+      const payload = {
+        cliente_nombre: clienteNombre || undefined,
+        cliente_nif: clienteNIF || undefined,
+        anio_fiscal: anioFiscal ? parseInt(anioFiscal) : undefined,
+      };
+      console.log(`[ActionsPanel] Generando solo Ficha 2.1 para cliente: ${clienteNif} / proyecto: ${proyectoAcronimo || 'NONE'}`);
+      const response = await apiService.generateFicha2_1Only(clienteNif || undefined, proyectoAcronimo || undefined, payload);
+      
+      if (!response.data.success) {
+        // No se pudo generar - mostrar aviso amigable
+        onError(`⚠️ ${response.data.aviso}`);
+        setGenerationAvisos([response.data.aviso]);
+      } else {
+        // Se generó correctamente
+        onSuccess(`✅ Ficha 2.1 generada`);
+        if (response.data.file) {
+          setGeneratedFiles([response.data.file]);
+        }
+        setGenerationAvisos([]);
+      }
+    } catch (error: any) {
+      onError(`❌ Error: ${error.response?.data?.detail || error.message}`);
+      setGenerationAvisos([]);
+    } finally {
+      onLoading(false);
+    }
+  };
+
+  const handleGenerarFicha2_2Solo = async () => {
+    // Si no hay datos, mostrar aviso
+    if (!puede_generar_2_2) {
+      onError('⚠️ No hay datos de colaboraciones o facturas. Cargue un Anexo o edite los datos.');
+      setGenerationAvisos(['No hay datos de colaboraciones o facturas']);
+      return;
+    }
+
+    try {
+      if (clienteNIF && !validateNIF(clienteNIF)) {
+        onError('❌ NIF inválido');
+        return;
+      }
+
+      onLoading(true);
+      const payload = {
+        cliente_nombre: clienteNombre || undefined,
+        cliente_nif: clienteNIF || undefined,
+        anio_fiscal: anioFiscal ? parseInt(anioFiscal) : undefined,
+      };
+      console.log(`[ActionsPanel] Generando solo Ficha 2.2 para cliente: ${clienteNif} / proyecto: ${proyectoAcronimo || 'NONE'}`);
+      const response = await apiService.generateFicha2_2Only(clienteNif || undefined, proyectoAcronimo || undefined, payload);
+      
+      if (!response.data.success) {
+        // No se pudo generar - mostrar aviso amigable
+        onError(`⚠️ ${response.data.aviso}`);
+        setGenerationAvisos([response.data.aviso]);
+      } else {
+        // Se generó correctamente
+        onSuccess(`✅ Ficha 2.2 generada`);
+        if (response.data.file) {
+          setGeneratedFiles([response.data.file]);
+        }
+        setGenerationAvisos([]);
+      }
+    } catch (error: any) {
+      onError(`❌ Error: ${error.response?.data?.detail || error.message}`);
+      setGenerationAvisos([]);
     } finally {
       onLoading(false);
     }
@@ -327,13 +520,56 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
         >
           ✅ Validar Datos
         </button>
-        <button
-          onClick={handleGenerateFichas}
-          className={`btn-primary text-lg py-3 ${clienteNIF && !validateNIF(clienteNIF) ? 'opacity-50 cursor-not-allowed' : ''}`}
-          disabled={!!(clienteNIF && !validateNIF(clienteNIF))}
-        >
-          📄 Generar Fichas
-        </button>
+      </div>
+
+      {/* Avisos de generación */}
+      {generationAvisos.length > 0 && (
+        <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-400 rounded">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">⚠️</span>
+            <div>
+              <h3 className="font-semibold text-red-800 mb-2">Falta de datos para generar fichas</h3>
+              <ul className="space-y-2">
+                {generationAvisos.map((aviso, idx) => (
+                  <li key={idx} className="text-red-700 text-sm flex items-start gap-2">
+                    <span className="text-red-500 mt-0.5">•</span>
+                    <span>{aviso}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-red-600 text-xs mt-3 italic">💡 Cargue un Anexo o edite los datos existentes para poder generar todas las fichas</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Opciones de generación selectiva - siempre visible */}
+      <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <h3 className="text-sm font-semibold mb-3 text-blue-800">📄 Generar Fichas Individuales:</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <button
+            onClick={handleGenerarFicha2_1Solo}
+            className={`text-sm py-2 font-medium rounded transition-colors ${
+              puede_generar_2_1 
+                ? 'btn-secondary hover:bg-blue-600' 
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
+            disabled={!puede_generar_2_1}
+          >
+            📄 Generar Ficha 2.1 (Personal)
+          </button>
+          <button
+            onClick={handleGenerarFicha2_2Solo}
+            className={`text-sm py-2 font-medium rounded transition-colors ${
+              puede_generar_2_2 
+                ? 'btn-secondary hover:bg-blue-600' 
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
+            disabled={!puede_generar_2_2}
+          >
+            📄 Generar Ficha 2.2 (Colaboraciones/Facturas)
+          </button>
+        </div>
       </div>
 
       <div className="mb-6">
@@ -472,6 +708,8 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
           onLoading={onLoading}
           onClose={() => setShowDataEditor(null)}
           clienteNif={clienteNIF}
+          proyectoAcronimo={proyectoAcronimo ? proyectoAcronimo : undefined}
+          onDataSaved={checkAvailableFichas}
         />
       )}
     </div>

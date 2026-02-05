@@ -68,9 +68,21 @@ export const apiService = {
   
   // Client Management
   listClients: () => api.get('/clientes'),
+  createClient: (nif: string, nombre?: string) => {
+    console.log(`[API] POST /clientes - nif: ${nif} - nombre: ${nombre || 'NONE'}`);
+    return api.post('/clientes', null, { 
+      params: { nif: nif, nombre: nombre || '' } 
+    });
+  },
   deleteClient: (clienteNif: string) => {
     console.log(`[API] DELETE /clientes/${clienteNif}`);
     return api.delete(`/clientes/${encodeURIComponent(clienteNif)}`);
+  },
+  setClientName: (clienteNif: string, nombre: string) => {
+    console.log(`[API] POST /clientes/${clienteNif}/nombre - nombre: ${nombre}`);
+    return api.post(`/clientes/${encodeURIComponent(clienteNif)}/nombre`, null, { 
+      params: { nombre: nombre } 
+    });
   },
 
   // Project Management
@@ -90,25 +102,25 @@ export const apiService = {
     console.log(`[API] GET /personal - cliente_nif: ${clienteNif || 'NONE'} - proyecto: ${proyectoAcronimo || 'NONE'}`);
     return api.get('/personal', { params: { cliente_nif: clienteNif, proyecto_acronimo: proyectoAcronimo } });
   },
-  updatePersonal: (data: any[], clienteNif?: string) => {
-    console.log(`[API] POST /update-personal - cliente_nif: ${clienteNif || 'NONE'} - registros: ${data.length}`);
-    return api.post('/update-personal', { data, cliente_nif: clienteNif });
+  updatePersonal: (data: any[], clienteNif?: string, proyectoAcronimo?: string) => {
+    console.log(`[API] POST /update-personal - cliente: ${clienteNif || 'NONE'} - proyecto: ${proyectoAcronimo || 'NONE'} - registros: ${data.length}`);
+    return api.post('/update-personal', { data, cliente_nif: clienteNif, proyecto_acronimo: proyectoAcronimo });
   },
   getColaboraciones: (clienteNif?: string, proyectoAcronimo?: string) => {
     console.log(`[API] GET /colaboraciones - cliente_nif: ${clienteNif || 'NONE'} - proyecto: ${proyectoAcronimo || 'NONE'}`);
     return api.get('/colaboraciones', { params: { cliente_nif: clienteNif, proyecto_acronimo: proyectoAcronimo } });
   },
-  updateColaboraciones: (data: any[], clienteNif?: string) => {
-    console.log(`[API] POST /update-colaboraciones - cliente_nif: ${clienteNif || 'NONE'} - registros: ${data.length}`);
-    return api.post('/update-colaboraciones', { data, cliente_nif: clienteNif });
+  updateColaboraciones: (data: any[], clienteNif?: string, proyectoAcronimo?: string) => {
+    console.log(`[API] POST /update-colaboraciones - cliente: ${clienteNif || 'NONE'} - proyecto: ${proyectoAcronimo || 'NONE'} - registros: ${data.length}`);
+    return api.post('/update-colaboraciones', { data, cliente_nif: clienteNif, proyecto_acronimo: proyectoAcronimo });
   },
   getFacturas: (clienteNif?: string, proyectoAcronimo?: string) => {
     console.log(`[API] GET /facturas - cliente_nif: ${clienteNif || 'NONE'} - proyecto: ${proyectoAcronimo || 'NONE'}`);
     return api.get('/facturas', { params: { cliente_nif: clienteNif, proyecto_acronimo: proyectoAcronimo } });
   },
-  updateFacturas: (data: any[], clienteNif?: string) => {
-    console.log(`[API] POST /update-facturas - cliente_nif: ${clienteNif || 'NONE'} - registros: ${data.length}`);
-    return api.post('/update-facturas', { data, cliente_nif: clienteNif });
+  updateFacturas: (data: any[], clienteNif?: string, proyectoAcronimo?: string) => {
+    console.log(`[API] POST /update-facturas - cliente: ${clienteNif || 'NONE'} - proyecto: ${proyectoAcronimo || 'NONE'} - registros: ${data.length}`);
+    return api.post('/update-facturas', { data, cliente_nif: clienteNif, proyecto_acronimo: proyectoAcronimo });
   },
 
   // Metadata
@@ -132,6 +144,21 @@ export const apiService = {
   generateFichas: (clienteNif?: string, proyectoAcronimo?: string, payload?: any) => {
     console.log(`[API] POST /generate-fichas - cliente_nif: ${clienteNif || 'NONE'} - proyecto: ${proyectoAcronimo || 'NONE'}`);
     return api.post('/generate-fichas', payload || {}, { params: { cliente_nif: clienteNif, proyecto_acronimo: proyectoAcronimo } });
+  },
+  
+  generateFicha2_1Only: (clienteNif?: string, proyectoAcronimo?: string, payload?: any) => {
+    console.log(`[API] POST /generate-ficha-2-1-only - cliente_nif: ${clienteNif || 'NONE'} - proyecto: ${proyectoAcronimo || 'NONE'}`);
+    return api.post('/generate-ficha-2-1-only', payload || {}, { params: { cliente_nif: clienteNif, proyecto_acronimo: proyectoAcronimo } });
+  },
+  
+  generateFicha2_2Only: (clienteNif?: string, proyectoAcronimo?: string, payload?: any) => {
+    console.log(`[API] POST /generate-ficha-2-2-only - cliente_nif: ${clienteNif || 'NONE'} - proyecto: ${proyectoAcronimo || 'NONE'}`);
+    return api.post('/generate-ficha-2-2-only', payload || {}, { params: { cliente_nif: clienteNif, proyecto_acronimo: proyectoAcronimo } });
+  },
+
+  checkAvailableFichas: (clienteNif?: string, proyectoAcronimo?: string) => {
+    console.log(`[API] GET /check-available-fichas - cliente_nif: ${clienteNif || 'NONE'} - proyecto: ${proyectoAcronimo || 'NONE'}`);
+    return api.get('/check-available-fichas', { params: { cliente_nif: clienteNif, proyecto_acronimo: proyectoAcronimo } });
   },
   
   // Download

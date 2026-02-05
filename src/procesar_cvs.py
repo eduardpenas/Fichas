@@ -157,9 +157,8 @@ def procesar_cvs(cliente_nif=None, proyecto_acronimo=None):
     
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     INPUT_DIR = os.path.join(BASE_DIR, 'inputs')
-    CVS_DIR = os.path.join(INPUT_DIR, 'cvs')
     
-    # Determinar de dónde leer los datos
+    # Determinar de dónde leer los datos Y los CVs
     if cliente_nif and proyecto_acronimo:
         # Modo proyecto: leer desde carpeta del proyecto
         cliente_nif = cliente_nif.strip()
@@ -168,44 +167,50 @@ def procesar_cvs(cliente_nif=None, proyecto_acronimo=None):
         client_dir = os.path.join(PROYECTOS_DIR, f'Cliente_{cliente_nif}')
         project_dir = os.path.join(client_dir, proyecto_acronimo)
         data_dir = os.path.join(project_dir, 'data')
+        cvs_dir = os.path.join(project_dir, 'cvs')  # CVs del proyecto
         EXCEL_PERSONAL_JSON = os.path.join(data_dir, "Excel_Personal_2.1.json")
         EXCEL_PERSONAL_XLSX = os.path.join(data_dir, "Excel_Personal_2.1.xlsx")
         print(f"🔍 Modo PROYECTO: {cliente_nif} / {proyecto_acronimo}")
         print(f"📁 Leyendo datos desde: {data_dir}")
+        print(f"📁 Leyendo CVs desde: {cvs_dir}")
     elif cliente_nif:
         # Modo cliente: leer desde carpeta del cliente (compatibilidad hacia atrás)
         cliente_nif = cliente_nif.strip()
         PROYECTOS_DIR = os.path.join(BASE_DIR, 'proyectos')
         client_dir = os.path.join(PROYECTOS_DIR, f'Cliente_{cliente_nif}')
         data_dir = os.path.join(client_dir, 'data')
+        cvs_dir = os.path.join(client_dir, 'cvs')  # CVs del cliente
         EXCEL_PERSONAL_JSON = os.path.join(data_dir, "Excel_Personal_2.1.json")
         EXCEL_PERSONAL_XLSX = os.path.join(data_dir, "Excel_Personal_2.1.xlsx")
         print(f"🔍 Modo CLIENTE: {cliente_nif}")
         print(f"📁 Leyendo datos desde: {data_dir}")
+        print(f"📁 Leyendo CVs desde: {cvs_dir}")
     else:
         # Modo INPUT_DIR (compatibilidad con comportamiento anterior)
+        cvs_dir = os.path.join(INPUT_DIR, 'cvs')
         EXCEL_PERSONAL_JSON = os.path.join(INPUT_DIR, "Excel_Personal_2.1.json")
         EXCEL_PERSONAL_XLSX = os.path.join(INPUT_DIR, "Excel_Personal_2.1.xlsx")
         print(f"🔍 Modo INPUT_DIR (compatibilidad)")
         print(f"📁 Leyendo datos desde: {INPUT_DIR}")
+        print(f"📁 Leyendo CVs desde: {cvs_dir}")
 
     print(f"📁 BASE_DIR: {BASE_DIR}")
-    print(f"📁 CVS_DIR: {CVS_DIR}")
+    print(f"📁 CVS_DIR: {cvs_dir}")
     print(f"📁 EXCEL_PERSONAL_JSON: {EXCEL_PERSONAL_JSON}")
     print(f"📁 EXCEL_PERSONAL_XLSX: {EXCEL_PERSONAL_XLSX}")
 
     # Verificar si existen CVs
-    if not os.path.exists(CVS_DIR):
-        print(f"❌ CVS_DIR NO EXISTE: {CVS_DIR}")
+    if not os.path.exists(cvs_dir):
+        print(f"❌ CVS_DIR NO EXISTE: {cvs_dir}")
         return
     
-    archivos_cv_encontrados = os.listdir(CVS_DIR) if os.path.exists(CVS_DIR) else []
+    archivos_cv_encontrados = os.listdir(cvs_dir) if os.path.exists(cvs_dir) else []
     print(f"📄 Archivos en CVS_DIR: {len(archivos_cv_encontrados)}")
     for f in archivos_cv_encontrados:
         print(f"   - {f}")
     
     if not archivos_cv_encontrados:
-        print(f"⚠️  No hay archivos en {CVS_DIR}")
+        print(f"⚠️  No hay archivos en {cvs_dir}")
         return
 
     # Verificar si existe Excel Personal
@@ -311,7 +316,7 @@ def procesar_cvs(cliente_nif=None, proyecto_acronimo=None):
         
         if pdf_match:
             print(f"      📖 Extrayendo experiencia de: {pdf_match}")
-            datos = extraer_experiencia_pdf(os.path.join(CVS_DIR, pdf_match))
+            datos = extraer_experiencia_pdf(os.path.join(cvs_dir, pdf_match))
             print(f"      📊 Datos extraídos: {len(datos)} experiencias")
             
             for n, exp in enumerate(datos):

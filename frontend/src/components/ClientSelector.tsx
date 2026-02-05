@@ -8,7 +8,7 @@ interface Client {
 }
 
 interface ClientSelectorProps {
-  onSelectClient: (clientNif: string) => void;
+  onSelectClient: (clientNif: string, clientName?: string) => void;
   onSuccess: (message: string) => void;
   onError: (error: string) => void;
   onLoading: (loading: boolean) => void;
@@ -25,6 +25,7 @@ export const ClientSelector: React.FC<ClientSelectorProps> = ({
   const [newClientName, setNewClientName] = useState<string>('');
   const [showNewForm, setShowNewForm] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   useEffect(() => {
     loadClientes();
@@ -43,32 +44,58 @@ export const ClientSelector: React.FC<ClientSelectorProps> = ({
   };
 
   const handleCreateClient = async () => {
-    if (!newClientNif.trim()) {
-      onError('❌ El NIF es obligatorio');
+    const nifLimpio = newClientNif.trim().toUpperCase();
+    
+    console.log(`[ClientSelector] 📝 handleCreateClient - NIF: "${nifLimpio}"`);
+    setLocalError(null); // Limpiar errores previos
+    
+    if (!nifLimpio) {
+      console.warn('[ClientSelector] ⚠️ NIF vacío');
+      setLocalError('❌ El NIF es obligatorio');
       return;
     }
 
-    if (clientes.some(c => c.nif === newClientNif)) {
-      onError('❌ Ya existe un cliente con ese NIF');
+    // Validar que el NIF no esté duplicado (case-insensitive)
+    const nifDuplicado = clientes.some(c => c.nif.toUpperCase() === nifLimpio);
+    if (nifDuplicado) {
+      console.warn(`[ClientSelector] ⚠️ NIF duplicado: "${nifLimpio}"`);
+      console.log('[ClientSelector] Clientes existentes:', clientes.map(c => c.nif.toUpperCase()));
+      const mensaje = `⚠️ El NIF "${nifLimpio}" ya existe en el sistema. Por favor, usa un NIF diferente.`;
+      console.log('[ClientSelector] Mostrando error local:', mensaje);
+      setLocalError(mensaje);
       return;
     }
 
     try {
       onLoading(true);
-      // Crear carpeta del cliente (se crea automáticamente al guardar datos)
-      // Por ahora, simplemente seleccionamos el cliente
-      setClientes([...clientes, {
-        nif: newClientNif,
-        nombre: newClientName || newClientNif,
-        folder: `Cliente_${newClientNif}`
-      }]);
-      onSuccess(`✅ Cliente ${newClientNif} creado`);
+      
+      const clientName = newClientName.trim() || nifLimpio;
+      
+      // Crear cliente en backend
+      console.log(`🔄 Creando cliente en backend: ${nifLimpio}`);
+      await apiService.createClient(nifLimpio, newClientName.trim());
+      console.log('✅ Cliente creado en backend');
+      
+      // Recargar lista de clientes desde el servidor
+      await loadClientes();
+      
+      onSuccess(`✅ Cliente ${clientName} creado correctamente`);
       setNewClientNif('');
       setNewClientName('');
       setShowNewForm(false);
-      onSelectClient(newClientNif);
+      setLocalError(null);
+      onSelectClient(nifLimpio, clientName);
     } catch (error: any) {
-      onError(`❌ Error: ${error.message}`);
+      const errorMsg = error.response?.data?.detail || error.message;
+      if (errorMsg.includes('already exists')) {
+        const mensaje = `⚠️ El NIF ya existe en el sistema. Usa un NIF diferente.`;
+        setLocalError(mensaje);
+        onError(mensaje);
+      } else {
+        const mensaje = `❌ Error: ${errorMsg}`;
+        setLocalError(mensaje);
+        onError(mensaje);
+      }
     } finally {
       onLoading(false);
     }
@@ -103,16 +130,17 @@ export const ClientSelector: React.FC<ClientSelectorProps> = ({
             <div
               key={cliente.nif}
               className="bg-white rounded-lg shadow-md p-6 border-2 border-transparent hover:border-blue-500 transition-all duration-200"
+              title={`NIF: ${cliente.nif}`}
             >
               <div className="text-2xl mb-2">👤</div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-1">{cliente.nombre}</h3>
-              <p className="text-sm text-gray-600 mb-4">NIF: {cliente.nif}</p>
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">{cliente.nombre}</h3>
               <div className="flex gap-2">
                 <button
-                  onClick={() => onSelectClient(cliente.nif)}
+                  onClick={() => onSelectClient(cliente.nif, cliente.nombre)}
                   className="btn-primary text-sm py-2 flex-1"
+                  title={`Abrir portal de ${cliente.nombre}`}
                 >
-                  ✏️ Abrir Portal
+                  ✏️ {cliente.nombre}
                 </button>
                 <button
                   onClick={() => setClientToDelete(cliente.nif)}
@@ -145,12 +173,22 @@ export const ClientSelector: React.FC<ClientSelectorProps> = ({
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-2xl font-bold">➕ Crear Nuevo Cliente</h3>
                 <button
-                  onClick={() => setShowNewForm(false)}
+                  onClick={() => {
+                    setShowNewForm(false);
+                    setLocalError(null);
+                  }}
                   className="text-lg hover:text-red-500"
                 >
                   ✕
                 </button>
               </div>
+
+              {/* Aviso de error */}
+              {localError && (
+                <div className="mb-4 p-4 bg-red-100 border border-red-300 rounded-lg text-red-800">
+                  {localError}
+                </div>
+              )}
 
               <div className="space-y-4">
                 <div>

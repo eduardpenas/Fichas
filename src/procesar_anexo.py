@@ -89,12 +89,13 @@ def procesar_anexo(archivo_especifico=None, cliente_nif=None, proyecto_acronimo=
         
         # Convertir a string y buscar patrones
         for i, row in df_datos.iterrows():
-            row_str = row.astype(str).str.upper().tolist()
-            row_original = row.astype(str).tolist()
+            # Convertir cada celda a string de forma segura, manejando NaN
+            row_str = [str(cell).upper() if pd.notna(cell) else "" for cell in row]
+            row_original = [str(cell) if pd.notna(cell) else "" for cell in row]
             
             # A) Buscar Año Fiscal
             for cell in row_str:
-                if "FECHA FIN" in cell or "EJERCICIO FISCAL" in cell or "EJERCICIO" in cell:
+                if cell and ("FECHA FIN" in cell or "EJERCICIO FISCAL" in cell or "EJERCICIO" in cell):
                     match = re.search(r'(20\d{2})', str(row_str))
                     if match:
                         anio_fiscal = int(match.group(1))
@@ -151,21 +152,39 @@ def procesar_anexo(archivo_especifico=None, cliente_nif=None, proyecto_acronimo=
         print("👤 Procesando Personal...")
         df_p = pd.read_excel(archivo_anexo, sheet_name="Personal", header=[12, 13])
         
+        print(f"   📋 Columnas detectadas: {list(df_p.columns)}")
+        print(f"   📊 Dimensiones: {df_p.shape}")
+        
         col_nombre = None
         col_horas = None
         col_coste = None
         col_titulacion = None
 
         for col in df_p.columns:
-            if "nombre" in str(col[0]).lower(): col_nombre = col
-            if "titulación" in str(col[0]).lower(): col_titulacion = col
+            col_0 = str(col[0]).lower()
+            col_1 = str(col[1]).lower() if len(col) > 1 else ""
             
-            if str(col[0]) == str(anio_fiscal):
-                sub_col = str(col[1]).lower()
-                if "horas" in sub_col and "it" in sub_col:
-                    col_horas = col
-                elif ("coste" in sub_col or "gasto" in sub_col) and "it" in sub_col:
-                    col_coste = col
+            if "nombre" in col_0: col_nombre = col
+            if "titulación" in col_0 or "titulacion" in col_0: col_titulacion = col
+            
+            # Convertir columna de manera segura
+            try:
+                col_0_str = str(col[0]).strip() if pd.notna(col[0]) else ""
+                col_1_str = str(col[1]).strip() if pd.notna(col[1]) else ""
+            except:
+                continue
+            
+            # Detectar columnas por año fiscal
+            try:
+                col_0_num = int(float(col_0_str)) if col_0_str.isdigit() or (col_0_str.replace('.', '', 1).isdigit()) else None
+                if col_0_num == anio_fiscal:
+                    sub_col = col_1_str.lower()
+                    if "horas" in sub_col and "it" in sub_col:
+                        col_horas = col
+                    elif ("coste" in sub_col or "gasto" in sub_col) and "it" in sub_col:
+                        col_coste = col
+            except:
+                pass
 
         if col_nombre and col_horas and col_coste:
             df_res = pd.DataFrame({
@@ -179,7 +198,15 @@ def procesar_anexo(archivo_especifico=None, cliente_nif=None, proyecto_acronimo=
             df_res = df_res[df_res["coste"] > 0]
             
             df_res["coste_horario"] = (df_res["coste"] / df_res["horas"]).replace([float('inf')], 0).fillna(0).round(2)
-            split_names = df_res["nombres_completos"].apply(separar_nombre_completo)
+            
+            # Aplicar separación de nombres con expand=True para siempre obtener DataFrame
+            split_names = df_res["nombres_completos"].apply(separar_nombre_completo, expand=True)
+            
+            # Asegurar que las columnas existan (incluso si el DataFrame está vacío)
+            if "Nombre" not in split_names.columns:
+                split_names["Nombre"] = ""
+            if "Apellidos" not in split_names.columns:
+                split_names["Apellidos"] = ""
             
             df_final_p = pd.DataFrame()
             df_final_p["Nombre"] = split_names["Nombre"]
@@ -303,7 +330,15 @@ def procesar_anexo(archivo_especifico=None, cliente_nif=None, proyecto_acronimo=
             df_fact.to_json(json_path_fact, orient='records', force_ascii=False, date_format='iso')
             print(f"   ✅ Facturas generado: {len(df_fact)} registros (JSON: {os.path.basename(json_path_fact)})")
         else:
-            print("   ⚠️ No se encontraron datos de colaboraciones con importe > 0")
+            print("   ⚠️ No se encontraron datos de colaboraciones, generando JSONs vacíos...")
+            # Generar JSONs vacíos para evitar errores de validación
+            json_path_colab = os.path.join(output_dir, "Excel_Colaboraciones_2.2.json")
+            pd.DataFrame([]).to_json(json_path_colab, orient='records', force_ascii=False, date_format='iso')
+            print(f"   ✅ Colaboraciones vacío generado (JSON: {os.path.basename(json_path_colab)})")
+            
+            json_path_fact = os.path.join(output_dir, "Excel_Facturas_2.2.json")
+            pd.DataFrame([]).to_json(json_path_fact, orient='records', force_ascii=False, date_format='iso')
+            print(f"   ✅ Facturas vacío generado (JSON: {os.path.basename(json_path_fact)})")
 
     except Exception as e:
         print(f"   ❌ Error General en Colaboraciones: {e}")
