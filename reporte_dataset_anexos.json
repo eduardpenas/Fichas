@@ -1,0 +1,370 @@
+{
+  "total": 12,
+  "procesados_ok": 12,
+  "personal_ok": 12,
+  "colaboraciones_ok": 0,
+  "personal_total": 339,
+  "colaboraciones_total": 0,
+  "resultados": [
+    {
+      "archivo": "Anexo_II_INTOPQUERE_2021.xlsx",
+      "estado": "OK",
+      "personal": {
+        "cantidad": 23,
+        "ok": true,
+        "detalles": [
+          "('Unnamed: 0_level_0', 'Unnamed: 0_level_1')",
+          "(' Código\\n Persona', 'Unnamed: 1_level_1')",
+          "('Nombre y Apellidos', 'Unnamed: 2_level_1')",
+          "(' Titulación', 'Unnamed: 3_level_1')",
+          "('Excl I+D\\n(SÍ/NO)', 'Unnamed: 4_level_1')"
+        ]
+      },
+      "colaboraciones": {
+        "cantidad": 0,
+        "ok": false,
+        "detalles": [
+          "Error: Worksheet named 'C.Externas' not found"
+        ]
+      },
+      "facturas": {
+        "cantidad": 0,
+        "ok": false,
+        "detalles": []
+      },
+      "errores": [
+        "Error leyendo C.Externas: Worksheet named 'C.Externas' not found"
+      ]
+    },
+    {
+      "archivo": "Formulario_Anexo_II_GRAPLANORO_2022.xlsx",
+      "estado": "OK",
+      "personal": {
+        "cantidad": 23,
+        "ok": true,
+        "detalles": [
+          "('Unnamed: 0_level_0', 'Unnamed: 0_level_1')",
+          "(' Código\\n Persona', 'Unnamed: 1_level_1')",
+          "('Nombre', 'Unnamed: 2_level_1')",
+          "(' Titulación', 'Unnamed: 3_level_1')",
+          "('Excl I+D\\n(SÍ/NO)', 'Unnamed: 4_level_1')"
+        ]
+      },
+      "colaboraciones": {
+        "cantidad": 0,
+        "ok": false,
+        "detalles": [
+          "Error: Worksheet named 'C.Externas' not found"
+        ]
+      },
+      "facturas": {
+        "cantidad": 0,
+        "ok": false,
+        "detalles": []
+      },
+      "errores": [
+        "Error leyendo C.Externas: Worksheet named 'C.Externas' not found"
+      ]
+    },
+    {
+      "archivo": "Formulario_Anexo_II_INTOPQUERE_2022.xlsx",
+      "estado": "OK",
+      "personal": {
+        "cantidad": 23,
+        "ok": true,
+        "detalles": [
+          "('Unnamed: 0_level_0', 'Unnamed: 0_level_1')",
+          "(' Código\\n Persona', 'Unnamed: 1_level_1')",
+          "('Nombre y Apellidos', 'Unnamed: 2_level_1')",
+          "(' Titulación', 'Unnamed: 3_level_1')",
+          "('Excl I+D\\n(SÍ/NO)', 'Unnamed: 4_level_1')"
+        ]
+      },
+      "colaboraciones": {
+        "cantidad": 0,
+        "ok": false,
+        "detalles": [
+          "Error: Worksheet named 'C.Externas' not found"
+        ]
+      },
+      "facturas": {
+        "cantidad": 0,
+        "ok": false,
+        "detalles": []
+      },
+      "errores": [
+        "Error leyendo C.Externas: Worksheet named 'C.Externas' not found"
+      ]
+    },
+    {
+      "archivo": "Formulario_Anexo_II_MODPROCINT_2021.xlsx",
+      "estado": "OK",
+      "personal": {
+        "cantidad": 23,
+        "ok": true,
+        "detalles": [
+          "('Unnamed: 0_level_0', 'Unnamed: 0_level_1')",
+          "(' Código\\n Persona', 'Unnamed: 1_level_1')",
+          "('Nombre y Apellidos', 'Unnamed: 2_level_1')",
+          "(' Titulación', 'Unnamed: 3_level_1')",
+          "('Excl I+D\\n(SÍ/NO)', 'Unnamed: 4_level_1')"
+        ]
+      },
+      "colaboraciones": {
+        "cantidad": 0,
+        "ok": false,
+        "detalles": [
+          "Error: Worksheet named 'C.Externas' not found"
+        ]
+      },
+      "facturas": {
+        "cantidad": 0,
+        "ok": false,
+        "detalles": []
+      },
+      "errores": [
+        "Error leyendo C.Externas: Worksheet named 'C.Externas' not found"
+      ]
+    },
+    {
+      "archivo": "Formulario_Anexo_II_MODPROCINT_2022.xlsx",
+      "estado": "OK",
+      "personal": {
+        "cantidad": 23,
+        "ok": true,
+        "detalles": [
+          "('Unnamed: 0_level_0', 'Unnamed: 0_level_1')",
+          "(' Código\\n Persona', 'Unnamed: 1_level_1')",
+          "('Nombre y Apellidos', 'Unnamed: 2_level_1')",
+          "(' Titulación', 'Unnamed: 3_level_1')",
+          "('Excl I+D\\n(SÍ/NO)', 'Unnamed: 4_level_1')"
+        ]
+      },
+      "colaboraciones": {
+        "cantidad": 0,
+        "ok": false,
+        "detalles": [
+          "Error: Worksheet named 'C.Externas' not found"
+        ]
+      },
+      "facturas": {
+        "cantidad": 0,
+        "ok": false,
+        "detalles": []
+      },
+      "errores": [
+        "Error leyendo C.Externas: Worksheet named 'C.Externas' not found"
+      ]
+    },
+    {
+      "archivo": "Formulario_Anexo_II_MULTIESHOP_2021.xlsx",
+      "estado": "OK",
+      "personal": {
+        "cantidad": 23,
+        "ok": true,
+        "detalles": [
+          "('Unnamed: 0_level_0', 'Unnamed: 0_level_1')",
+          "(' Código\\n Persona', 'Unnamed: 1_level_1')",
+          "('Nombre y Apellidos', 'Unnamed: 2_level_1')",
+          "(' Titulación', 'Unnamed: 3_level_1')",
+          "('Excl I+D\\n(SÍ/NO)', 'Unnamed: 4_level_1')"
+        ]
+      },
+      "colaboraciones": {
+        "cantidad": 0,
+        "ok": false,
+        "detalles": [
+          "Error: Worksheet named 'C.Externas' not found"
+        ]
+      },
+      "facturas": {
+        "cantidad": 0,
+        "ok": false,
+        "detalles": []
+      },
+      "errores": [
+        "Error leyendo C.Externas: Worksheet named 'C.Externas' not found"
+      ]
+    },
+    {
+      "archivo": "Formulario_Anexo_II_MULTIESHOP_2022.xlsx",
+      "estado": "OK",
+      "personal": {
+        "cantidad": 23,
+        "ok": true,
+        "detalles": [
+          "('Unnamed: 0_level_0', 'Unnamed: 0_level_1')",
+          "(' Código\\n Persona', 'Unnamed: 1_level_1')",
+          "('Nombre y Apellidos', 'Unnamed: 2_level_1')",
+          "(' Titulación', 'Unnamed: 3_level_1')",
+          "('Excl I+D\\n(SÍ/NO)', 'Unnamed: 4_level_1')"
+        ]
+      },
+      "colaboraciones": {
+        "cantidad": 0,
+        "ok": false,
+        "detalles": [
+          "Error: Worksheet named 'C.Externas' not found"
+        ]
+      },
+      "facturas": {
+        "cantidad": 0,
+        "ok": false,
+        "detalles": []
+      },
+      "errores": [
+        "Error leyendo C.Externas: Worksheet named 'C.Externas' not found"
+      ]
+    },
+    {
+      "archivo": "Formulario_Anexo_II_OMNIGESTAV_2022.xlsx",
+      "estado": "OK",
+      "personal": {
+        "cantidad": 38,
+        "ok": true,
+        "detalles": [
+          "('Unnamed: 0_level_0', 'Unnamed: 0_level_1')",
+          "(' Código\\n Persona', 'Unnamed: 1_level_1')",
+          "('Nombre y Apellidos', 'Unnamed: 2_level_1')",
+          "(' Titulación', 'Unnamed: 3_level_1')",
+          "('Excl I+D\\n(SÍ/NO)', 'Unnamed: 4_level_1')"
+        ]
+      },
+      "colaboraciones": {
+        "cantidad": 0,
+        "ok": false,
+        "detalles": [
+          "Error: Worksheet named 'C.Externas' not found"
+        ]
+      },
+      "facturas": {
+        "cantidad": 0,
+        "ok": false,
+        "detalles": []
+      },
+      "errores": [
+        "Error leyendo C.Externas: Worksheet named 'C.Externas' not found"
+      ]
+    },
+    {
+      "archivo": "Formulario_Anexo_II_ORANTECH21_2022.xlsx",
+      "estado": "OK",
+      "personal": {
+        "cantidad": 46,
+        "ok": true,
+        "detalles": [
+          "('Unnamed: 0_level_0', 'Unnamed: 0_level_1')",
+          "(' Código\\n Persona', 'Unnamed: 1_level_1')",
+          "('Nombre y Apellidos', 'Unnamed: 2_level_1')",
+          "(' Titulación', 'Unnamed: 3_level_1')",
+          "('Excl I+D\\n(SÍ/NO)', 'Unnamed: 4_level_1')"
+        ]
+      },
+      "colaboraciones": {
+        "cantidad": 0,
+        "ok": false,
+        "detalles": [
+          "Error: Worksheet named 'C.Externas' not found"
+        ]
+      },
+      "facturas": {
+        "cantidad": 0,
+        "ok": false,
+        "detalles": []
+      },
+      "errores": [
+        "Error leyendo C.Externas: Worksheet named 'C.Externas' not found"
+      ]
+    },
+    {
+      "archivo": "Formulario_Anexo_II_RD_1432_2003_tipo_a_01_01_2025_GSP.xlsx",
+      "estado": "OK",
+      "personal": {
+        "cantidad": 28,
+        "ok": true,
+        "detalles": [
+          "('Unnamed: 0_level_0', 'Unnamed: 0_level_1')",
+          "(' Código\\n Persona', 'Unnamed: 1_level_1')",
+          "('Nombre', 'Unnamed: 2_level_1')",
+          "(' Titulación', 'Unnamed: 3_level_1')",
+          "('Excl I+D\\n(SÍ/NO)', 'Unnamed: 4_level_1')"
+        ]
+      },
+      "colaboraciones": {
+        "cantidad": 0,
+        "ok": false,
+        "detalles": [
+          "Error: Worksheet named 'C.Externas' not found"
+        ]
+      },
+      "facturas": {
+        "cantidad": 0,
+        "ok": false,
+        "detalles": []
+      },
+      "errores": [
+        "Error leyendo C.Externas: Worksheet named 'C.Externas' not found"
+      ]
+    },
+    {
+      "archivo": "Formulario_Anexo_II_tipo_a_GSP_v1.xlsx",
+      "estado": "OK",
+      "personal": {
+        "cantidad": 39,
+        "ok": true,
+        "detalles": [
+          "('Unnamed: 0_level_0', 'Unnamed: 0_level_1')",
+          "(' Código\\n Persona', 'Unnamed: 1_level_1')",
+          "('Nombre', 'Unnamed: 2_level_1')",
+          "(' Titulación', 'Unnamed: 3_level_1')",
+          "('Excl I+D\\n(SÍ/NO)', 'Unnamed: 4_level_1')"
+        ]
+      },
+      "colaboraciones": {
+        "cantidad": 0,
+        "ok": false,
+        "detalles": [
+          "Error: Worksheet named 'C.Externas' not found"
+        ]
+      },
+      "facturas": {
+        "cantidad": 0,
+        "ok": false,
+        "detalles": []
+      },
+      "errores": [
+        "Error leyendo C.Externas: Worksheet named 'C.Externas' not found"
+      ]
+    },
+    {
+      "archivo": "Formulario_Anexo_II_tipo_a_GSP_v2.xlsx",
+      "estado": "OK",
+      "personal": {
+        "cantidad": 27,
+        "ok": true,
+        "detalles": [
+          "('Unnamed: 0_level_0', 'Unnamed: 0_level_1')",
+          "(' Código\\n Persona', 'Unnamed: 1_level_1')",
+          "('Nombre y Apellidos', 'Unnamed: 2_level_1')",
+          "(' Titulación', 'Unnamed: 3_level_1')",
+          "('Excl I+D\\n(SÍ/NO)', 'Unnamed: 4_level_1')"
+        ]
+      },
+      "colaboraciones": {
+        "cantidad": 0,
+        "ok": false,
+        "detalles": [
+          "Error: Worksheet named 'C.Externas' not found"
+        ]
+      },
+      "facturas": {
+        "cantidad": 0,
+        "ok": false,
+        "detalles": []
+      },
+      "errores": [
+        "Error leyendo C.Externas: Worksheet named 'C.Externas' not found"
+      ]
+    }
+  ]
+}

@@ -329,7 +329,8 @@ def procesar_anexo(archivo_especifico=None, cliente_nif=None, proyecto_acronimo=
         facturas_list = []
         colaboraciones_list = []
         
-        hojas_externas = ["C.Externas (Otros)", "C.Externas (OPIS)"]
+        # Orden de prioridad: OPIS primero (siempre tiene datos), luego Otros
+        hojas_externas = ["C.Externas (OPIS)", "C.Externas (Otros)"]
         
         for hoja in hojas_externas:
             try:
@@ -402,8 +403,13 @@ def procesar_anexo(archivo_especifico=None, cliente_nif=None, proyecto_acronimo=
                                 "Nombre factura": f"Personal {anio_fiscal}",
                                 "Importe (€)": importe
                             })
+                    
+                    # Si encontramos datos en esta hoja, salir del loop de hojas
+                    if colaboraciones_list:
+                        break
+            
             except Exception as e:
-                print(f"   ⚠️ Error leyendo hoja {hoja}: {e}")
+                print(f"   ⚠️ Error leyendo hoja {hoja}: {str(e)[:50]}")
 
         if colaboraciones_list:
             df_colab = pd.DataFrame(colaboraciones_list).drop_duplicates(subset="Razón social")

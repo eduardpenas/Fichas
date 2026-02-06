@@ -1,0 +1,113 @@
+{
+  "fecha_analisis": "2026-02-06T09:27:41.138658",
+  "total_archivos": 12,
+  "resumen": {
+    "personal": {
+      "total_personas": 339,
+      "archivos_con_datos": 12,
+      "rango_minimo": 23,
+      "rango_maximo": 46,
+      "promedio": 28.2
+    },
+    "colaboraciones": {
+      "total_colaboraciones": 305,
+      "archivos_con_datos": 12,
+      "rango_minimo": 25,
+      "rango_maximo": 26,
+      "promedio": 25.4,
+      "hoja_correcta": "C.Externas (OPIS)"
+    },
+    "estructura": {
+      "hojas_estandar": [
+        "Datos solicitud",
+        "Instrucciones",
+        "Personal",
+        "C.Externas (OPIS)",
+        "C.Externas (Otros)",
+        "El._inmovilizado (AMORTIZACIÓN)",
+        "El._inmovilizado (INVERSIÓN)",
+        "Fungibles",
+        "Otros Gastos",
+        "I+D",
+        "iT",
+        "TOTAL",
+        "DESVIACIONES",
+        "DOC JUSTIFICATIVOS"
+      ]
+    }
+  },
+  "archivos_detalles": [
+    {
+      "archivo": "Anexo_II_INTOPQUERE_2021.xlsx",
+      "personal": 23,
+      "colaboraciones": 26,
+      "status": "OK"
+    },
+    {
+      "archivo": "Formulario_Anexo_II_GRAPLANORO_2022.xlsx",
+      "personal": 23,
+      "colaboraciones": 26,
+      "status": "OK"
+    },
+    {
+      "archivo": "Formulario_Anexo_II_INTOPQUERE_2022.xlsx",
+      "personal": 23,
+      "colaboraciones": 26,
+      "status": "OK"
+    },
+    {
+      "archivo": "Formulario_Anexo_II_MODPROCINT_2021.xlsx",
+      "personal": 23,
+      "colaboraciones": 25,
+      "status": "OK"
+    },
+    {
+      "archivo": "Formulario_Anexo_II_MODPROCINT_2022.xlsx",
+      "personal": 23,
+      "colaboraciones": 25,
+      "status": "OK"
+    },
+    {
+      "archivo": "Formulario_Anexo_II_MULTIESHOP_2021.xlsx",
+      "personal": 23,
+      "colaboraciones": 25,
+      "status": "OK"
+    },
+    {
+      "archivo": "Formulario_Anexo_II_MULTIESHOP_2022.xlsx",
+      "personal": 23,
+      "colaboraciones": 25,
+      "status": "OK"
+    },
+    {
+      "archivo": "Formulario_Anexo_II_OMNIGESTAV_2022.xlsx",
+      "personal": 38,
+      "colaboraciones": 25,
+      "status": "OK"
+    },
+    {
+      "archivo": "Formulario_Anexo_II_ORANTECH21_2022.xlsx",
+      "personal": 46,
+      "colaboraciones": 25,
+      "status": "OK"
+    },
+    {
+      "archivo": "Formulario_Anexo_II_RD_1432_2003_tipo_a_01_01_2025_GSP.xlsx",
+      "personal": 28,
+      "colaboraciones": 26,
+      "status": "OK"
+    },
+    {
+      "archivo": "Formulario_Anexo_II_tipo_a_GSP_v1.xlsx",
+      "personal": 39,
+      "colaboraciones": 26,
+      "status": "OK"
+    },
+    {
+      "archivo": "Formulario_Anexo_II_tipo_a_GSP_v2.xlsx",
+      "personal": 27,
+      "colaboraciones": 25,
+      "status": "OK"
+    }
+  ]
+}

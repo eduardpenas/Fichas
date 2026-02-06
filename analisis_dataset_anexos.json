@@ -1,0 +1,737 @@
+{
+  "estadisticas": {
+    "total_archivos": 12,
+    "archivos_personal": 12,
+    "archivos_colaboraciones": 12,
+    "total_personas": 339,
+    "total_colaboraciones": 305
+  },
+  "hojas_detectadas": [
+    "I+D",
+    "C.Externas (Otros)",
+    "Personal",
+    "El._inmovilizado (AMORTIZACIÓN)",
+    "Fungibles",
+    "El._inmovilizado (INVERSIÓN)",
+    "Instrucciones",
+    "C.Externas (OPIS)",
+    "iT",
+    "DESVIACIONES",
+    "Hoja1",
+    "TOTAL",
+    "Datos solicitud",
+    "Otros Gastos",
+    "DOC JUSTIFICATIVOS"
+  ],
+  "resultados_detallados": [
+    {
+      "archivo": "Anexo_II_INTOPQUERE_2021.xlsx",
+      "hojas": [
+        "Datos solicitud",
+        "Instrucciones",
+        "Personal",
+        "C.Externas (OPIS)",
+        "C.Externas (Otros)",
+        "El._inmovilizado (AMORTIZACIÓN)",
+        "El._inmovilizado (INVERSIÓN)",
+        "Fungibles",
+        "Otros Gastos",
+        "I+D",
+        "iT",
+        "TOTAL",
+        "DESVIACIONES",
+        "DOC JUSTIFICATIVOS"
+      ],
+      "datos_solicitud": {
+        "ok": true,
+        "entidad": null,
+        "nif": null
+      },
+      "personal": {
+        "ok": true,
+        "cantidad": 23,
+        "columnas": [
+          [
+            "Unnamed: 0_level_0",
+            "Unnamed: 0_level_1"
+          ],
+          [
+            " Código\n Persona",
+            "Unnamed: 1_level_1"
+          ],
+          [
+            "Nombre y Apellidos",
+            "Unnamed: 2_level_1"
+          ],
+          [
+            " Titulación",
+            "Unnamed: 3_level_1"
+          ],
+          [
+            "Excl I+D\n(SÍ/NO)",
+            "Unnamed: 4_level_1"
+          ]
+        ]
+      },
+      "colaboraciones": {
+        "ok": true,
+        "cantidad": 26,
+        "hoja": "C.Externas (OPIS)"
+      },
+      "facturas": {
+        "ok": false,
+        "cantidad": 0
+      }
+    },
+    {
+      "archivo": "Formulario_Anexo_II_GRAPLANORO_2022.xlsx",
+      "hojas": [
+        "Datos solicitud",
+        "Instrucciones",
+        "Personal",
+        "C.Externas (OPIS)",
+        "C.Externas (Otros)",
+        "El._inmovilizado (AMORTIZACIÓN)",
+        "El._inmovilizado (INVERSIÓN)",
+        "Fungibles",
+        "Otros Gastos",
+        "I+D",
+        "iT",
+        "TOTAL",
+        "DESVIACIONES",
+        "DOC JUSTIFICATIVOS"
+      ],
+      "datos_solicitud": {
+        "ok": true,
+        "entidad": null,
+        "nif": null
+      },
+      "personal": {
+        "ok": true,
+        "cantidad": 23,
+        "columnas": [
+          [
+            "Unnamed: 0_level_0",
+            "Unnamed: 0_level_1"
+          ],
+          [
+            " Código\n Persona",
+            "Unnamed: 1_level_1"
+          ],
+          [
+            "Nombre",
+            "Unnamed: 2_level_1"
+          ],
+          [
+            " Titulación",
+            "Unnamed: 3_level_1"
+          ],
+          [
+            "Excl I+D\n(SÍ/NO)",
+            "Unnamed: 4_level_1"
+          ]
+        ]
+      },
+      "colaboraciones": {
+        "ok": true,
+        "cantidad": 26,
+        "hoja": "C.Externas (OPIS)"
+      },
+      "facturas": {
+        "ok": false,
+        "cantidad": 0
+      }
+    },
+    {
+      "archivo": "Formulario_Anexo_II_INTOPQUERE_2022.xlsx",
+      "hojas": [
+        "Datos solicitud",
+        "Instrucciones",
+        "Personal",
+        "C.Externas (OPIS)",
+        "C.Externas (Otros)",
+        "El._inmovilizado (AMORTIZACIÓN)",
+        "El._inmovilizado (INVERSIÓN)",
+        "Fungibles",
+        "Otros Gastos",
+        "I+D",
+        "iT",
+        "TOTAL",
+        "DESVIACIONES",
+        "DOC JUSTIFICATIVOS"
+      ],
+      "datos_solicitud": {
+        "ok": true,
+        "entidad": null,
+        "nif": null
+      },
+      "personal": {
+        "ok": true,
+        "cantidad": 23,
+        "columnas": [
+          [
+            "Unnamed: 0_level_0",
+            "Unnamed: 0_level_1"
+          ],
+          [
+            " Código\n Persona",
+            "Unnamed: 1_level_1"
+          ],
+          [
+            "Nombre y Apellidos",
+            "Unnamed: 2_level_1"
+          ],
+          [
+            " Titulación",
+            "Unnamed: 3_level_1"
+          ],
+          [
+            "Excl I+D\n(SÍ/NO)",
+            "Unnamed: 4_level_1"
+          ]
+        ]
+      },
+      "colaboraciones": {
+        "ok": true,
+        "cantidad": 26,
+        "hoja": "C.Externas (OPIS)"
+      },
+      "facturas": {
+        "ok": false,
+        "cantidad": 0
+      }
+    },
+    {
+      "archivo": "Formulario_Anexo_II_MODPROCINT_2021.xlsx",
+      "hojas": [
+        "Datos solicitud",
+        "Instrucciones",
+        "Personal",
+        "C.Externas (OPIS)",
+        "C.Externas (Otros)",
+        "El._inmovilizado (AMORTIZACIÓN)",
+        "El._inmovilizado (INVERSIÓN)",
+        "Fungibles",
+        "Otros Gastos",
+        "I+D",
+        "iT",
+        "TOTAL",
+        "DESVIACIONES",
+        "DOC JUSTIFICATIVOS"
+      ],
+      "datos_solicitud": {
+        "ok": true,
+        "entidad": null,
+        "nif": null
+      },
+      "personal": {
+        "ok": true,
+        "cantidad": 23,
+        "columnas": [
+          [
+            "Unnamed: 0_level_0",
+            "Unnamed: 0_level_1"
+          ],
+          [
+            " Código\n Persona",
+            "Unnamed: 1_level_1"
+          ],
+          [
+            "Nombre y Apellidos",
+            "Unnamed: 2_level_1"
+          ],
+          [
+            " Titulación",
+            "Unnamed: 3_level_1"
+          ],
+          [
+            "Excl I+D\n(SÍ/NO)",
+            "Unnamed: 4_level_1"
+          ]
+        ]
+      },
+      "colaboraciones": {
+        "ok": true,
+        "cantidad": 25,
+        "hoja": "C.Externas (OPIS)"
+      },
+      "facturas": {
+        "ok": false,
+        "cantidad": 0
+      }
+    },
+    {
+      "archivo": "Formulario_Anexo_II_MODPROCINT_2022.xlsx",
+      "hojas": [
+        "Datos solicitud",
+        "Instrucciones",
+        "Personal",
+        "C.Externas (OPIS)",
+        "C.Externas (Otros)",
+        "El._inmovilizado (AMORTIZACIÓN)",
+        "El._inmovilizado (INVERSIÓN)",
+        "Fungibles",
+        "Otros Gastos",
+        "I+D",
+        "iT",
+        "TOTAL",
+        "DESVIACIONES",
+        "DOC JUSTIFICATIVOS"
+      ],
+      "datos_solicitud": {
+        "ok": true,
+        "entidad": null,
+        "nif": null
+      },
+      "personal": {
+        "ok": true,
+        "cantidad": 23,
+        "columnas": [
+          [
+            "Unnamed: 0_level_0",
+            "Unnamed: 0_level_1"
+          ],
+          [
+            " Código\n Persona",
+            "Unnamed: 1_level_1"
+          ],
+          [
+            "Nombre y Apellidos",
+            "Unnamed: 2_level_1"
+          ],
+          [
+            " Titulación",
+            "Unnamed: 3_level_1"
+          ],
+          [
+            "Excl I+D\n(SÍ/NO)",
+            "Unnamed: 4_level_1"
+          ]
+        ]
+      },
+      "colaboraciones": {
+        "ok": true,
+        "cantidad": 25,
+        "hoja": "C.Externas (OPIS)"
+      },
+      "facturas": {
+        "ok": false,
+        "cantidad": 0
+      }
+    },
+    {
+      "archivo": "Formulario_Anexo_II_MULTIESHOP_2021.xlsx",
+      "hojas": [
+        "Datos solicitud",
+        "Instrucciones",
+        "Personal",
+        "C.Externas (OPIS)",
+        "C.Externas (Otros)",
+        "El._inmovilizado (AMORTIZACIÓN)",
+        "El._inmovilizado (INVERSIÓN)",
+        "Fungibles",
+        "Otros Gastos",
+        "I+D",
+        "iT",
+        "TOTAL",
+        "DESVIACIONES",
+        "DOC JUSTIFICATIVOS"
+      ],
+      "datos_solicitud": {
+        "ok": true,
+        "entidad": null,
+        "nif": null
+      },
+      "personal": {
+        "ok": true,
+        "cantidad": 23,
+        "columnas": [
+          [
+            "Unnamed: 0_level_0",
+            "Unnamed: 0_level_1"
+          ],
+          [
+            " Código\n Persona",
+            "Unnamed: 1_level_1"
+          ],
+          [
+            "Nombre y Apellidos",
+            "Unnamed: 2_level_1"
+          ],
+          [
+            " Titulación",
+            "Unnamed: 3_level_1"
+          ],
+          [
+            "Excl I+D\n(SÍ/NO)",
+            "Unnamed: 4_level_1"
+          ]
+        ]
+      },
+      "colaboraciones": {
+        "ok": true,
+        "cantidad": 25,
+        "hoja": "C.Externas (OPIS)"
+      },
+      "facturas": {
+        "ok": false,
+        "cantidad": 0
+      }
+    },
+    {
+      "archivo": "Formulario_Anexo_II_MULTIESHOP_2022.xlsx",
+      "hojas": [
+        "Datos solicitud",
+        "Instrucciones",
+        "Personal",
+        "C.Externas (OPIS)",
+        "C.Externas (Otros)",
+        "El._inmovilizado (AMORTIZACIÓN)",
+        "El._inmovilizado (INVERSIÓN)",
+        "Fungibles",
+        "Otros Gastos",
+        "I+D",
+        "iT",
+        "TOTAL",
+        "DESVIACIONES",
+        "DOC JUSTIFICATIVOS"
+      ],
+      "datos_solicitud": {
+        "ok": true,
+        "entidad": null,
+        "nif": null
+      },
+      "personal": {
+        "ok": true,
+        "cantidad": 23,
+        "columnas": [
+          [
+            "Unnamed: 0_level_0",
+            "Unnamed: 0_level_1"
+          ],
+          [
+            " Código\n Persona",
+            "Unnamed: 1_level_1"
+          ],
+          [
+            "Nombre y Apellidos",
+            "Unnamed: 2_level_1"
+          ],
+          [
+            " Titulación",
+            "Unnamed: 3_level_1"
+          ],
+          [
+            "Excl I+D\n(SÍ/NO)",
+            "Unnamed: 4_level_1"
+          ]
+        ]
+      },
+      "colaboraciones": {
+        "ok": true,
+        "cantidad": 25,
+        "hoja": "C.Externas (OPIS)"
+      },
+      "facturas": {
+        "ok": false,
+        "cantidad": 0
+      }
+    },
+    {
+      "archivo": "Formulario_Anexo_II_OMNIGESTAV_2022.xlsx",
+      "hojas": [
+        "Datos solicitud",
+        "Instrucciones",
+        "Personal",
+        "C.Externas (OPIS)",
+        "iT",
+        "C.Externas (Otros)",
+        "El._inmovilizado (AMORTIZACIÓN)",
+        "El._inmovilizado (INVERSIÓN)",
+        "Fungibles",
+        "Otros Gastos",
+        "I+D",
+        "TOTAL",
+        "DESVIACIONES",
+        "DOC JUSTIFICATIVOS"
+      ],
+      "datos_solicitud": {
+        "ok": true,
+        "entidad": null,
+        "nif": null
+      },
+      "personal": {
+        "ok": true,
+        "cantidad": 38,
+        "columnas": [
+          [
+            "Unnamed: 0_level_0",
+            "Unnamed: 0_level_1"
+          ],
+          [
+            " Código\n Persona",
+            "Unnamed: 1_level_1"
+          ],
+          [
+            "Nombre y Apellidos",
+            "Unnamed: 2_level_1"
+          ],
+          [
+            " Titulación",
+            "Unnamed: 3_level_1"
+          ],
+          [
+            "Excl I+D\n(SÍ/NO)",
+            "Unnamed: 4_level_1"
+          ]
+        ]
+      },
+      "colaboraciones": {
+        "ok": true,
+        "cantidad": 25,
+        "hoja": "C.Externas (OPIS)"
+      },
+      "facturas": {
+        "ok": false,
+        "cantidad": 0
+      }
+    },
+    {
+      "archivo": "Formulario_Anexo_II_ORANTECH21_2022.xlsx",
+      "hojas": [
+        "Datos solicitud",
+        "Instrucciones",
+        "Personal",
+        "C.Externas (OPIS)",
+        "C.Externas (Otros)",
+        "El._inmovilizado (AMORTIZACIÓN)",
+        "El._inmovilizado (INVERSIÓN)",
+        "Fungibles",
+        "Otros Gastos",
+        "I+D",
+        "iT",
+        "TOTAL",
+        "DESVIACIONES",
+        "DOC JUSTIFICATIVOS"
+      ],
+      "datos_solicitud": {
+        "ok": true,
+        "entidad": null,
+        "nif": null
+      },
+      "personal": {
+        "ok": true,
+        "cantidad": 46,
+        "columnas": [
+          [
+            "Unnamed: 0_level_0",
+            "Unnamed: 0_level_1"
+          ],
+          [
+            " Código\n Persona",
+            "Unnamed: 1_level_1"
+          ],
+          [
+            "Nombre y Apellidos",
+            "Unnamed: 2_level_1"
+          ],
+          [
+            " Titulación",
+            "Unnamed: 3_level_1"
+          ],
+          [
+            "Excl I+D\n(SÍ/NO)",
+            "Unnamed: 4_level_1"
+          ]
+        ]
+      },
+      "colaboraciones": {
+        "ok": true,
+        "cantidad": 25,
+        "hoja": "C.Externas (OPIS)"
+      },
+      "facturas": {
+        "ok": false,
+        "cantidad": 0
+      }
+    },
+    {
+      "archivo": "Formulario_Anexo_II_RD_1432_2003_tipo_a_01_01_2025_GSP.xlsx",
+      "hojas": [
+        "Datos solicitud",
+        "Instrucciones",
+        "Personal",
+        "C.Externas (OPIS)",
+        "C.Externas (Otros)",
+        "El._inmovilizado (AMORTIZACIÓN)",
+        "El._inmovilizado (INVERSIÓN)",
+        "Fungibles",
+        "Otros Gastos",
+        "I+D",
+        "iT",
+        "TOTAL",
+        "DESVIACIONES",
+        "DOC JUSTIFICATIVOS"
+      ],
+      "datos_solicitud": {
+        "ok": true,
+        "entidad": null,
+        "nif": null
+      },
+      "personal": {
+        "ok": true,
+        "cantidad": 28,
+        "columnas": [
+          [
+            "Unnamed: 0_level_0",
+            "Unnamed: 0_level_1"
+          ],
+          [
+            " Código\n Persona",
+            "Unnamed: 1_level_1"
+          ],
+          [
+            "Nombre",
+            "Unnamed: 2_level_1"
+          ],
+          [
+            " Titulación",
+            "Unnamed: 3_level_1"
+          ],
+          [
+            "Excl I+D\n(SÍ/NO)",
+            "Unnamed: 4_level_1"
+          ]
+        ]
+      },
+      "colaboraciones": {
+        "ok": true,
+        "cantidad": 26,
+        "hoja": "C.Externas (OPIS)"
+      },
+      "facturas": {
+        "ok": false,
+        "cantidad": 0
+      }
+    },
+    {
+      "archivo": "Formulario_Anexo_II_tipo_a_GSP_v1.xlsx",
+      "hojas": [
+        "Datos solicitud",
+        "Instrucciones",
+        "Personal",
+        "C.Externas (OPIS)",
+        "C.Externas (Otros)",
+        "El._inmovilizado (AMORTIZACIÓN)",
+        "El._inmovilizado (INVERSIÓN)",
+        "Fungibles",
+        "Otros Gastos",
+        "I+D",
+        "iT",
+        "TOTAL",
+        "DESVIACIONES",
+        "DOC JUSTIFICATIVOS",
+        "Hoja1"
+      ],
+      "datos_solicitud": {
+        "ok": true,
+        "entidad": null,
+        "nif": null
+      },
+      "personal": {
+        "ok": true,
+        "cantidad": 39,
+        "columnas": [
+          [
+            "Unnamed: 0_level_0",
+            "Unnamed: 0_level_1"
+          ],
+          [
+            " Código\n Persona",
+            "Unnamed: 1_level_1"
+          ],
+          [
+            "Nombre",
+            "Unnamed: 2_level_1"
+          ],
+          [
+            " Titulación",
+            "Unnamed: 3_level_1"
+          ],
+          [
+            "Excl I+D\n(SÍ/NO)",
+            "Unnamed: 4_level_1"
+          ]
+        ]
+      },
+      "colaboraciones": {
+        "ok": true,
+        "cantidad": 26,
+        "hoja": "C.Externas (OPIS)"
+      },
+      "facturas": {
+        "ok": false,
+        "cantidad": 0
+      }
+    },
+    {
+      "archivo": "Formulario_Anexo_II_tipo_a_GSP_v2.xlsx",
+      "hojas": [
+        "Datos solicitud",
+        "Instrucciones",
+        "Personal",
+        "C.Externas (OPIS)",
+        "C.Externas (Otros)",
+        "El._inmovilizado (AMORTIZACIÓN)",
+        "El._inmovilizado (INVERSIÓN)",
+        "Fungibles",
+        "Otros Gastos",
+        "I+D",
+        "iT",
+        "TOTAL",
+        "DESVIACIONES",
+        "DOC JUSTIFICATIVOS"
+      ],
+      "datos_solicitud": {
+        "ok": true,
+        "entidad": null,
+        "nif": null
+      },
+      "personal": {
+        "ok": true,
+        "cantidad": 27,
+        "columnas": [
+          [
+            "Unnamed: 0_level_0",
+            "Unnamed: 0_level_1"
+          ],
+          [
+            " Código\n Persona",
+            "Unnamed: 1_level_1"
+          ],
+          [
+            "Nombre y Apellidos",
+            "Unnamed: 2_level_1"
+          ],
+          [
+            " Titulación",
+            "Unnamed: 3_level_1"
+          ],
+          [
+            "Excl I+D\n(SÍ/NO)",
+            "Unnamed: 4_level_1"
+          ]
+        ]
+      },
+      "colaboraciones": {
+        "ok": true,
+        "cantidad": 25,
+        "hoja": "C.Externas (OPIS)"
+      },
+      "facturas": {
+        "ok": false,
+        "cantidad": 0
+      }
+    }
+  ]
+}
