@@ -8,6 +8,7 @@ interface ActionsPanelProps {
   clienteNombre?: string | null;
   proyectoAcronimo?: string | null;
   refreshTrigger?: number; // Se usa para forzar refresh desde el padre
+  extractedMetadata?: any; // Metadatos extraídos del Anexo (año fiscal, NIF, entidad)
   onSuccess: (message: string) => void;
   onError: (error: string) => void;
   onLoading: (loading: boolean) => void;
@@ -19,6 +20,7 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
   clienteNombre: clienteNombreProps,
   proyectoAcronimo,
   refreshTrigger,
+  extractedMetadata,
   onSuccess,
   onError,
   onLoading,
@@ -27,7 +29,7 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
   const [validationResult, setValidationResult] = useState<any>(null);
   const [clienteNombre, setClienteNombre] = useState<string>('');
   const [clienteNIF, setClienteNIF] = useState<string>('');
-  const [anioFiscal, setAnioFiscal] = useState<string>('2025');
+  const [anioFiscal, setAnioFiscal] = useState<string>(new Date().getFullYear().toString());
   const [generatedFiles, setGeneratedFiles] = useState<string[]>([]);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [previewDocx, setPreviewDocx] = useState<boolean>(false);
@@ -129,6 +131,34 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
     }
   }, [refreshTrigger]);
 
+  // Autocompletar campos cuando se reciben metadatos extraídos del Anexo
+  useEffect(() => {
+    if (extractedMetadata) {
+      console.log('[ActionsPanel] 📊 Autocompletando campos con metadatos extraídos:', extractedMetadata);
+      
+      // Autocompletar año fiscal
+      if (extractedMetadata.anio_fiscal) {
+        const anio = extractedMetadata.anio_fiscal.toString();
+        console.log(`   📅 Año fiscal: ${anio}`);
+        setAnioFiscal(anio);
+      }
+      
+      // Autocompletar NIF cliente
+      if (extractedMetadata.nif_cliente) {
+        console.log(`   🆔 NIF cliente: ${extractedMetadata.nif_cliente}`);
+        setClienteNIF(extractedMetadata.nif_cliente);
+      }
+      
+      // Autocompletar entidad solicitante (razón social)
+      if (extractedMetadata.entidad_solicitante) {
+        console.log(`   🏢 Entidad: ${extractedMetadata.entidad_solicitante}`);
+        setClienteNombre(extractedMetadata.entidad_solicitante);
+      }
+      
+      console.log('[ActionsPanel] ✅ Campos autocompletados');
+    }
+  }, [extractedMetadata]);
+
   const loadMetadata = async () => {
     if (!clienteNif) return;
     
@@ -150,14 +180,14 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
       if (metadata.anio_fiscal) {
         setAnioFiscal(metadata.anio_fiscal.toString());
       } else {
-        // Si no hay año fiscal en metadata, usar 2025
-        setAnioFiscal('2025');
+        // Si no hay año fiscal en metadata, usar el año actual
+        setAnioFiscal(new Date().getFullYear().toString());
       }
     } catch (error: any) {
       // No es crítico si no existe metadata (cliente nuevo)
       console.log('ℹ️ No se encontró metadata (cliente nuevo o sin Anexo procesado)');
-      // Asegurar que el año fiscal por defecto sea 2025
-      setAnioFiscal('2025');
+      // Asegurar que el año fiscal por defecto sea el año actual
+      setAnioFiscal(new Date().getFullYear().toString());
     } finally {
       setIsLoadingMetadata(false);
     }
@@ -376,20 +406,40 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
     }
   };
 
+  // Función helper para generar nombre personalizado de descarga
+  const getCustomFileName = (ficheroBase: string, cliente: string | null, proyecto?: string | null): string => {
+    if (!cliente) return ficheroBase;
+    
+    // Extraer tipo de ficha (2_1 o 2_2)
+    const partes = ficheroBase.replace('Ficha_', '').replace('.docx', '');
+    // Sanitizar y convertir a mayúsculas: solo alfanuméricos
+    const clienteSanitizado = cliente.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().substring(0, 30);
+    const proyectoSanitizado = proyecto?.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().substring(0, 30) || '';
+    
+    // Formato: Ficha_Ampliacion_Aptdo_2_1_CLIENTE_PROYECTO.docx
+    if (proyectoSanitizado) {
+      return `Ficha_Ampliacion_Aptdo_${partes}_${clienteSanitizado}_${proyectoSanitizado}.docx`;
+    } else {
+      return `Ficha_Ampliacion_Aptdo_${partes}_${clienteSanitizado}.docx`;
+    }
+  };
+
   const handleDownloadFicha = async (name: string) => {
     try {
       onLoading(true);
-      console.log(`[ActionsPanel] Descargando ficha para cliente: ${clienteNif} - archivo: ${name}`);
-      const response = await apiService.downloadFicha(name, clienteNif || undefined);
+      console.log(`[ActionsPanel] Descargando ficha para cliente: ${clienteNif} / proyecto: ${proyectoAcronimo || 'NONE'} - archivo: ${name}`);
+      const response = await apiService.downloadFicha(name, clienteNif || undefined, proyectoAcronimo || undefined);
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', name);
+      // Usar nombre personalizado con cliente y proyecto
+      const customName = getCustomFileName(name, clienteNombre, proyectoAcronimo);
+      link.setAttribute('download', customName);
       document.body.appendChild(link);
       link.click();
       link.parentNode?.removeChild(link);
       window.URL.revokeObjectURL(url);
-      onSuccess(`✅ ${name} descargado`);
+      onSuccess(`✅ ${customName} descargado`);
     } catch (error: any) {
       onError(`❌ Error: ${error.response?.data?.detail || error.message}`);
     } finally {
@@ -400,8 +450,8 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
   const handlePreviewFicha = async (name: string) => {
     try {
       onLoading(true);
-      console.log(`[ActionsPanel] Previsualizando ficha para cliente: ${clienteNif} - archivo: ${name}`);
-      const response = await apiService.previewFichaDocx(name, clienteNif || undefined);
+      console.log(`[ActionsPanel] Previsualizando ficha para cliente: ${clienteNif} / proyecto: ${proyectoAcronimo || 'NONE'} - archivo: ${name}`);
+      const response = await apiService.previewFichaDocx(name, clienteNif || undefined, proyectoAcronimo || undefined);
       setPreviewHtml(null);
       setPreviewDocx(true);
       
@@ -429,14 +479,21 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
     try {
       onLoading(true);
       setDownloadProgress(0);
-      console.log(`[ActionsPanel] Descargando ZIP de fichas para cliente: ${clienteNif}`);
-      const response = await apiService.downloadFichas(clienteNif || undefined, (pct:number) => setDownloadProgress(pct));
+      console.log(`[ActionsPanel] Descargando ZIP de fichas para cliente: ${clienteNif} / proyecto: ${proyectoAcronimo || 'NONE'}`);
+      const response = await apiService.downloadFichas(clienteNif || undefined, proyectoAcronimo || undefined, (pct:number) => setDownloadProgress(pct));
       
       // Crear un blob y descargarlo
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', 'fichas.zip');
+      // Usar nombre personalizado para el ZIP
+      // Formato: Fichas_ampliacion_CLIENTE_PROYECTO.ZIP
+      const customZipName = clienteNombre && proyectoAcronimo 
+        ? `Fichas_ampliacion_${clienteNombre.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()}_${proyectoAcronimo.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()}.ZIP`
+        : clienteNombre
+        ? `Fichas_ampliacion_${clienteNombre.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()}.ZIP`
+        : 'Fichas_ampliacion.ZIP';
+      link.setAttribute('download', customZipName);
       document.body.appendChild(link);
       link.click();
       link.parentNode?.removeChild(link);
@@ -455,6 +512,23 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
   return (
     <div className="card mb-6">
       <h2 className="text-2xl font-bold mb-4">⚙️ Acciones</h2>
+
+      {/* Display destacado del año fiscal cuando se carga desde el Anexo */}
+      {anioFiscal && (
+        <div className={`mb-6 p-4 rounded-lg border-2 ${
+          parseInt(anioFiscal) > 2000
+            ? 'bg-blue-50 border-blue-300'
+            : 'bg-gray-50 border-gray-300'
+        }`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Año Fiscal Detectado</p>
+              <p className="text-3xl font-bold text-blue-600">{anioFiscal}</p>
+            </div>
+            <div className="text-4xl">📅</div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div>

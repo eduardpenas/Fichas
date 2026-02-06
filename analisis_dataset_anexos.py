@@ -142,7 +142,7 @@ def main():
         print_color(f"❌ Directorio no encontrado: {dataset_dir}", 'RED')
         return
     
-    archivos = sorted([f for f in os.listdir(dataset_dir) if f.endswith('.xlsx')])
+    archivos = sorted([f for f in os.listdir(dataset_dir) if f.endswith('.xlsx') and not f.startswith('~$')])
     print(f"📂 Analizando {len(archivos)} archivos...\n")
     
     # Analizar cada archivo

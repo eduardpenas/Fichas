@@ -162,23 +162,23 @@ export const apiService = {
   },
   
   // Download
-  downloadFichas: (clienteNif?: string, onProgress?: (pct: number) => void) => {
-    console.log(`[API] GET /download-fichas - cliente_nif: ${clienteNif || 'NONE (INPUT_DIR)'}`);
-    return api.get('/download-fichas', { params: { cliente_nif: clienteNif }, responseType: 'blob', onDownloadProgress: (ev:any) => { if(onProgress && ev.total) onProgress(Math.round((ev.loaded*100)/ev.total)); } });
+  downloadFichas: (clienteNif?: string, proyectoAcronimo?: string, onProgress?: (pct: number) => void) => {
+    console.log(`[API] GET /download-fichas - cliente: ${clienteNif || 'NONE (INPUT_DIR)'} - proyecto: ${proyectoAcronimo || 'NONE'}`);
+    return api.get('/download-fichas', { params: { cliente_nif: clienteNif, proyecto_acronimo: proyectoAcronimo }, responseType: 'blob', onDownloadProgress: (ev:any) => { if(onProgress && ev.total) onProgress(Math.round((ev.loaded*100)/ev.total)); } });
   },
-  downloadFicha: (name: string, clienteNif?: string, onProgress?: (pct: number) => void) => {
-    console.log(`[API] GET /download-ficha - cliente_nif: ${clienteNif || 'NONE (INPUT_DIR)'} - archivo: ${name}`);
-    return api.get('/download-ficha', { params: { name, cliente_nif: clienteNif }, responseType: 'blob', onDownloadProgress: (ev:any) => { if(onProgress && ev.total) onProgress(Math.round((ev.loaded*100)/ev.total)); } });
+  downloadFicha: (name: string, clienteNif?: string, proyectoAcronimo?: string, onProgress?: (pct: number) => void) => {
+    console.log(`[API] GET /download-ficha - cliente: ${clienteNif || 'NONE (INPUT_DIR)'} - proyecto: ${proyectoAcronimo || 'NONE'} - archivo: ${name}`);
+    return api.get('/download-ficha', { params: { name, cliente_nif: clienteNif, proyecto_acronimo: proyectoAcronimo }, responseType: 'blob', onDownloadProgress: (ev:any) => { if(onProgress && ev.total) onProgress(Math.round((ev.loaded*100)/ev.total)); } });
   },
   
   // Preview
-  previewFicha: (name: string, clienteNif?: string) => {
-    console.log(`[API] GET /preview-ficha - cliente_nif: ${clienteNif || 'NONE (INPUT_DIR)'} - archivo: ${name}`);
-    return api.get('/preview-ficha', { params: { name, cliente_nif: clienteNif } });
+  previewFicha: (name: string, clienteNif?: string, proyectoAcronimo?: string) => {
+    console.log(`[API] GET /preview-ficha - cliente: ${clienteNif || 'NONE (INPUT_DIR)'} - proyecto: ${proyectoAcronimo || 'NONE'} - archivo: ${name}`);
+    return api.get('/preview-ficha', { params: { name, cliente_nif: clienteNif, proyecto_acronimo: proyectoAcronimo } });
   },
-  previewFichaDocx: (name: string, clienteNif?: string) => {
-    console.log(`[API] GET /download-ficha (arraybuffer) - cliente_nif: ${clienteNif || 'NONE (INPUT_DIR)'} - archivo: ${name}`);
-    return api.get('/download-ficha', { params: { name, cliente_nif: clienteNif }, responseType: 'arraybuffer' });
+  previewFichaDocx: (name: string, clienteNif?: string, proyectoAcronimo?: string) => {
+    console.log(`[API] GET /download-ficha (arraybuffer) - cliente: ${clienteNif || 'NONE (INPUT_DIR)'} - proyecto: ${proyectoAcronimo || 'NONE'} - archivo: ${name}`);
+    return api.get('/download-ficha', { params: { name, cliente_nif: clienteNif, proyecto_acronimo: proyectoAcronimo }, responseType: 'arraybuffer' });
   },
 };
 

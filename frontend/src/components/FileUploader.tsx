@@ -9,13 +9,15 @@ interface FileUploaderProps {
   onLoading: (loading: boolean) => void;
   onUploadComplete?: () => void;  // ← Callback para refrescar después del upload de Anexo
   onCVsUploadComplete?: () => void;  // ← Callback para procesar después del upload de CVs
+  onAnexoMetadata?: (metadata: any) => void;  // ← Callback para recibir metadatos (incluyendo anio_fiscal)
 }
 
-export const FileUploader: React.FC<FileUploaderProps> = ({ clienteNif, proyectoAcronimo, onSuccess, onError, onLoading, onUploadComplete, onCVsUploadComplete }) => {
+export const FileUploader: React.FC<FileUploaderProps> = ({ clienteNif, proyectoAcronimo, onSuccess, onError, onLoading, onUploadComplete, onCVsUploadComplete, onAnexoMetadata }) => {
   const [anexoFile, setAnexoFile] = useState<File | null>(null);
   const [cvFiles, setCvFiles] = useState<File[]>([]);
   const [anexoProgress, setAnexoProgress] = useState<number>(0);
   const [cvsProgress, setCvsProgress] = useState<number>(0);
+  const [extractedMetadata, setExtractedMetadata] = useState<any>(null);
 
   const handleAnexoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -47,7 +49,34 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ clienteNif, proyecto
       console.log(`[FileUploader] Subiendo anexo para cliente: ${clienteNif} / proyecto: ${proyectoAcronimo || 'NONE'}`);
       const uploadFn = apiService.uploadAnexo(anexoFile, clienteNif || undefined, proyectoAcronimo || undefined);
       const response = await uploadFn((pct:number) => setAnexoProgress(pct));
-      onSuccess(`✅ Anexo procesado: ${response.data.message}`);
+      
+      // Capturar metadatos extraídos (incluyendo año fiscal)
+      const metadata = response.data.metadata;
+      if (metadata) {
+        setExtractedMetadata(metadata);
+        console.log('[FileUploader] Metadatos extraídos:', metadata);
+        
+        // Notificar al padre sobre los metadatos
+        if (onAnexoMetadata) {
+          onAnexoMetadata(metadata);
+        }
+        
+        // Mostrar año fiscal extraído al usuario
+        const anioFiscal = metadata.anio_fiscal || '';
+        const nifCliente = metadata.nif_cliente || '';
+        const entidad = metadata.entidad_solicitante || '';
+        
+        let successMsg = `✅ Anexo procesado: ${response.data.message}`;
+        if (anioFiscal) {
+          successMsg += ` | Año fiscal extraído: ${anioFiscal}`;
+        }
+        onSuccess(successMsg);
+        
+        console.log(`[FileUploader] ✓ Metadatos extraídos - Año fiscal: ${anioFiscal}, NIF: ${nifCliente}, Entidad: ${entidad}`);
+      } else {
+        onSuccess(`✅ Anexo procesado: ${response.data.message}`);
+      }
+      
       setAnexoFile(null);
       setAnexoProgress(0);
       
@@ -102,6 +131,33 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ clienteNif, proyecto
   return (
     <div className="card mb-6">
       <h2 className="text-2xl font-bold mb-4">📁 Cargar Archivos</h2>
+
+      {/* Mostrar metadatos extraídos del Anexo */}
+      {extractedMetadata && (
+        <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-500 rounded">
+          <h3 className="font-semibold text-green-800 mb-2">✓ Datos Extraídos del Anexo:</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            {extractedMetadata.anio_fiscal && (
+              <div>
+                <span className="text-gray-600">Año Fiscal:</span>
+                <p className="font-bold text-lg text-green-700">{extractedMetadata.anio_fiscal}</p>
+              </div>
+            )}
+            {extractedMetadata.nif_cliente && (
+              <div>
+                <span className="text-gray-600">NIF Cliente:</span>
+                <p className="font-bold text-green-700">{extractedMetadata.nif_cliente}</p>
+              </div>
+            )}
+            {extractedMetadata.entidad_solicitante && (
+              <div>
+                <span className="text-gray-600">Entidad:</span>
+                <p className="font-bold text-green-700">{extractedMetadata.entidad_solicitante}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Anexo II */}
       <div className="mb-6">

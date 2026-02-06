@@ -23,6 +23,57 @@ def buscar_archivo_anexo(input_dir):
             return os.path.join(input_dir, file)
     return None
 
+def extraer_anio_fiscal_clean(archivo_anexo):
+    """
+    Extrae el año fiscal de forma clean desde la pestaña 'Datos Solicitud'.
+    
+    Busca la fila que contiene 'EJERCICIO FISCAL DE LA SOLICITUD' y extrae
+    la fecha que le sigue (en cualquier formato: dd/mm/aaaa, aaaa-mm-dd, etc.)
+    sacando de esa fecha el año.
+    
+    Args:
+        archivo_anexo: Path al archivo Excel
+    
+    Returns:
+        anio_fiscal (int): Año fiscal extraído, o 2024 como fallback
+    """
+    try:
+        df = pd.read_excel(archivo_anexo, sheet_name="Datos solicitud", header=None)
+        
+        # Buscar la fila que contiene "EJERCICIO FISCAL"
+        for i, row in df.iterrows():
+            # Convertir fila a strings y buscar patrón
+            row_str = [str(cell).upper() if pd.notna(cell) else "" for cell in row]
+            
+            # Buscar la celda que contiene "EJERCICIO FISCAL"
+            for j, cell in enumerate(row_str):
+                if "EJERCICIO FISCAL" in cell and "SOLICITUD" in cell:
+                    # Encontramos la celda, ahora buscamos la fecha en las siguientes celdas
+                    # La fecha suele estar 2-5 columnas a la derecha
+                    for offset in range(2, 8):  # Expandido a 8 para más flexibilidad
+                        if j + offset < len(row):
+                            valor = str(row.iloc[j + offset]).strip()
+                            
+                            # Buscar formatos: dd/mm/aaaa o aaaa-mm-dd o aaaa-mm-dd hh:mm:ss
+                            # Formato 1: dd/mm/aaaa
+                            match_fecha = re.search(r'(\d{1,2})[/-](\d{1,2})[/-](\d{4})', valor)
+                            if match_fecha:
+                                anio = int(match_fecha.group(3))  # El año es el tercer grupo
+                                return anio
+                            
+                            # Formato 2: aaaa-mm-dd (con o sin hora)
+                            match_fecha_iso = re.search(r'(20\d{2})[/-](\d{1,2})[/-](\d{1,2})', valor)
+                            if match_fecha_iso:
+                                anio = int(match_fecha_iso.group(1))  # El año es el primer grupo
+                                return anio
+        
+        # Si no se encuentra, usar 2024 como default
+        return 2024
+    
+    except Exception as e:
+        # En caso de error, usar 2024 como default silenciosamente
+        return 2024
+
 def procesar_anexo(archivo_especifico=None, cliente_nif=None, proyecto_acronimo=None):
     """
     Procesa el archivo anexo especificado, o busca uno disponible.
@@ -48,6 +99,7 @@ def procesar_anexo(archivo_especifico=None, cliente_nif=None, proyecto_acronimo=
         output_dir = os.path.join(project_dir, 'data')
         os.makedirs(output_dir, exist_ok=True)
         print(f"📁 Modo PROYECTO: Guardando en {output_dir}")
+        print(f"   ✓ Directorio creado/verificado: {os.path.exists(output_dir)}")
     elif cliente_nif:
         # Guardar en carpeta del cliente (compatibilidad hacia atrás)
         PROYECTOS_DIR = os.path.join(BASE_DIR, 'proyectos')
@@ -55,6 +107,7 @@ def procesar_anexo(archivo_especifico=None, cliente_nif=None, proyecto_acronimo=
         output_dir = os.path.join(client_dir, 'data')
         os.makedirs(output_dir, exist_ok=True)
         print(f"📁 Modo CLIENTE: Guardando en {output_dir}")
+        print(f"   ✓ Directorio creado/verificado: {os.path.exists(output_dir)}")
     else:
         # Guardar en INPUT_DIR (compatibilidad con comportamiento anterior)
         output_dir = INPUT_DIR
@@ -78,7 +131,8 @@ def procesar_anexo(archivo_especifico=None, cliente_nif=None, proyecto_acronimo=
     print(f"📁 Ruta completa: {archivo_anexo}")
 
     # 1. DETECTAR DATOS GENERALES (AÑO, NIF, RAZÓN SOCIAL)
-    anio_fiscal = 2024
+    # Extraer año fiscal de forma clean desde Datos Solicitud
+    anio_fiscal = extraer_anio_fiscal_clean(archivo_anexo)
     nif_solicitante = ""
     entidad_solicitante = ""  # Sin valor por defecto, se dejará vacío si no se encuentra
     
@@ -93,15 +147,7 @@ def procesar_anexo(archivo_especifico=None, cliente_nif=None, proyecto_acronimo=
             row_str = [str(cell).upper() if pd.notna(cell) else "" for cell in row]
             row_original = [str(cell) if pd.notna(cell) else "" for cell in row]
             
-            # A) Buscar Año Fiscal
-            for cell in row_str:
-                if cell and ("FECHA FIN" in cell or "EJERCICIO FISCAL" in cell or "EJERCICIO" in cell):
-                    match = re.search(r'(20\d{2})', str(row_str))
-                    if match:
-                        anio_fiscal = int(match.group(1))
-                        print(f"      ✅ Año fiscal encontrado: {anio_fiscal}")
-            
-            # B) Buscar NIF Solicitante
+            # Buscar NIF Solicitante
             for idx, cell in enumerate(row_str):
                 if "NIF" in cell and ("ENTIDAD" in cell or "SOLICITANTE" in cell):
                     # Buscar el valor en las siguientes columnas
@@ -113,7 +159,7 @@ def procesar_anexo(archivo_especifico=None, cliente_nif=None, proyecto_acronimo=
                                 print(f"      ✅ NIF encontrado: {nif_solicitante}")
                                 break
                 
-                # C) Buscar Razón Social / Entidad Solicitante (mejorado)
+                # Buscar Razón Social / Entidad Solicitante (mejorado)
                 # Patrones: RAZÓN SOCIAL, RAZON SOCIAL, DENOMINACIÓN, DENOMINACION, ENTIDAD SOLICITANTE
                 cell_clean = cell.replace("\n", " ").strip()
                 
@@ -269,6 +315,9 @@ def procesar_anexo(archivo_especifico=None, cliente_nif=None, proyecto_acronimo=
                 df_final_p.to_json(json_path_p, orient='records', force_ascii=False, date_format='iso')
                 print(f"   OK - Personal generado: {len(df_final_p)} personas")
                 print(f"   Archivo: {os.path.basename(json_path_p)}")
+                print(f"   ✓ Ruta completa: {json_path_p}")
+                print(f"   ✓ Existe: {os.path.exists(json_path_p)}")
+                print(f"   ✓ Tamaño: {os.path.getsize(json_path_p)} bytes")
             else:
                 print(f"   WARN - No hay registros validos con datos en el anio {anio_fiscal}")
                 # Crear archivo vacío
@@ -324,26 +373,60 @@ def procesar_anexo(archivo_especifico=None, cliente_nif=None, proyecto_acronimo=
     # 3. PROCESAR COLABORACIONES Y FACTURAS (Ficha 2.2)
     # ==========================================
     try:
-        print("🏢 Procesando Colaboraciones Externas...")
-        
         facturas_list = []
         colaboraciones_list = []
         
-        # Orden de prioridad: OPIS primero (siempre tiene datos), luego Otros
-        hojas_externas = ["C.Externas (OPIS)", "C.Externas (Otros)"]
+        # Leer todas las hojas disponibles
+        try:
+            excel_file = pd.ExcelFile(archivo_anexo)
+            todas_las_hojas = excel_file.sheet_names
+        except:
+            todas_las_hojas = []
+        
+        # Buscar dinámicamente hojas que contengan "Externa" o "Colabora" en el nombre
+        hojas_externas = [h for h in todas_las_hojas if "externa" in h.lower() or "colabora" in h.lower()]
+        
+        # Si no encuentra hojas, intentar con nombres conocidos
+        if not hojas_externas:
+            hojas_externas = [h for h in todas_las_hojas if "C." in h]  # Hojas que empiezan con "C."
+        
+        # Si aún no, intentar con nombres exactos antiguos (pero solo si existen)
+        if not hojas_externas:
+            nombres_conocidos = ["C.Externas (OPIS)", "C.Externas (Otros)"]
+            hojas_externas = [h for h in nombres_conocidos if h in todas_las_hojas]
+        
+        # Si tampoco hay, es normal - generar JSONs vacíos
+        if not hojas_externas:
+            print(f"   ℹ️  No se encontraron hojas de colaboraciones (normal si el archivo no tiene secciones de colaboradores externos)")
         
         for hoja in hojas_externas:
             try:
+                # Saltar si la hoja no existe
+                if hoja not in excel_file.sheet_names:
+                    continue
+                    
                 df_raw = pd.read_excel(archivo_anexo, sheet_name=hoja, header=None)
                 
-                # Buscar fila de cabecera
+                # Buscar fila de cabecera - FLEXIBLE con múltiples variantes
                 fila_head = -1
-                for i, row in df_raw.head(20).iterrows():
-                    if "Entidad" in row.values:
+                for i, row in df_raw.head(30).iterrows():  # Buscar hasta 30 filas
+                    row_str = " ".join([str(v).lower() for v in row.values if pd.notna(v)])
+                    # Palabras clave para detectar encabezado
+                    tiene_razon = "razón" in row_str or "razon" in row_str
+                    tiene_social = "social" in row_str
+                    tiene_entidad = "entidad" in row_str or "colaborador" in row_str
+                    tiene_nif = "nif" in row_str or "cif" in row_str
+                    
+                    # Detectar si es encabezado (contiene múltiples palabras clave)
+                    if (tiene_razon and tiene_social) or \
+                       (tiene_entidad and tiene_nif) or \
+                       ("razón social de entidad" in row_str):
                         fila_head = i
                         break
                 
-                if fila_head == -1: continue
+                # Si no encontró encabezado en esta hoja, saltar
+                if fila_head == -1:
+                    continue
 
                 fila_anios = df_raw.iloc[fila_head]
                 fila_conceptos = df_raw.iloc[fila_head + 1]
@@ -352,19 +435,44 @@ def procesar_anexo(archivo_especifico=None, cliente_nif=None, proyecto_acronimo=
                 idx_nif = -1
                 idx_total_anio = -1
                 
+                # Buscar índices de columnas de forma flexible
                 for idx, val in enumerate(fila_anios):
                     val_str = str(val).lower()
-                    if "entidad" in val_str: idx_entidad = idx
-                    if "nif" in val_str: idx_nif = idx
+                    # Buscar columna de razón social / entidad
+                    if ("razón" in val_str or "razon" in val_str or "social" in val_str or "entidad" in val_str or "colaborador" in val_str):
+                        if idx_entidad == -1:  # Usar la primera que encuentre
+                            idx_entidad = idx
+                    # Buscar columna de NIF/CIF
+                    if ("nif" in val_str or "cif" in val_str):
+                        if idx_nif == -1:  # Usar la primera que encuentre
+                            idx_nif = idx
                 
+                # Buscar columna de total del año fiscal (flexible)
                 for idx, val in enumerate(fila_anios):
-                    if str(anio_fiscal) in str(val):
+                    val_str = str(val)
+                    # Primero intentar con el año exacto
+                    if str(anio_fiscal) in val_str:
                         for offset in range(4):
-                            sub_val = str(fila_conceptos[idx + offset]).upper()
-                            if "TOTAL" in sub_val:
-                                idx_total_anio = idx + offset
-                                break
+                            if idx + offset < len(fila_conceptos):
+                                sub_val = str(fila_conceptos[idx + offset]).upper()
+                                if "TOTAL" in sub_val:
+                                    idx_total_anio = idx + offset
+                                    break
                         break
+                
+                # Si no encontramos el año exacto, buscar cualquier TOTAL que sea número
+                if idx_total_anio == -1:
+                    for idx, val in enumerate(fila_anios):
+                        val_str = str(val).lower()
+                        if any(str(y) in val_str for y in range(2000, 2100)):  # Cualquier año válido
+                            for offset in range(4):
+                                if idx + offset < len(fila_conceptos):
+                                    sub_val = str(fila_conceptos[idx + offset]).upper()
+                                    if "TOTAL" in sub_val:
+                                        idx_total_anio = idx + offset
+                                        break
+                            if idx_total_anio != -1:
+                                break
 
                 if idx_entidad != -1 and idx_total_anio != -1:
                     for i in range(fila_head + 2, len(df_raw)):
@@ -409,28 +517,23 @@ def procesar_anexo(archivo_especifico=None, cliente_nif=None, proyecto_acronimo=
                         break
             
             except Exception as e:
-                print(f"   ⚠️ Error leyendo hoja {hoja}: {str(e)[:50]}")
+                # Silenciar errores - es normal si no hay hojas de colaboraciones
+                pass
 
-        if colaboraciones_list:
-            df_colab = pd.DataFrame(colaboraciones_list).drop_duplicates(subset="Razón social")
-            json_path_colab = os.path.join(output_dir, "Excel_Colaboraciones_2.2.json")
-            df_colab.to_json(json_path_colab, orient='records', force_ascii=False, date_format='iso')
-            print(f"   ✅ Colaboraciones generado: {len(df_colab)} entidades (JSON: {os.path.basename(json_path_colab)})")
-            
-            df_fact = pd.DataFrame(facturas_list)
-            json_path_fact = os.path.join(output_dir, "Excel_Facturas_2.2.json")
-            df_fact.to_json(json_path_fact, orient='records', force_ascii=False, date_format='iso')
-            print(f"   ✅ Facturas generado: {len(df_fact)} registros (JSON: {os.path.basename(json_path_fact)})")
-        else:
-            print("   ⚠️ No se encontraron datos de colaboraciones, generando JSONs vacíos...")
-            # Generar JSONs vacíos para evitar errores de validación
-            json_path_colab = os.path.join(output_dir, "Excel_Colaboraciones_2.2.json")
-            pd.DataFrame([]).to_json(json_path_colab, orient='records', force_ascii=False, date_format='iso')
-            print(f"   ✅ Colaboraciones vacío generado (JSON: {os.path.basename(json_path_colab)})")
-            
-            json_path_fact = os.path.join(output_dir, "Excel_Facturas_2.2.json")
-            pd.DataFrame([]).to_json(json_path_fact, orient='records', force_ascii=False, date_format='iso')
-            print(f"   ✅ Facturas vacío generado (JSON: {os.path.basename(json_path_fact)})")
+        # Generar JSONs (vacíos o con datos)
+        df_colab = pd.DataFrame(colaboraciones_list).drop_duplicates(subset="Razón social") if colaboraciones_list else pd.DataFrame()
+        json_path_colab = os.path.join(output_dir, "Excel_Colaboraciones_2.2.json")
+        df_colab.to_json(json_path_colab, orient='records', force_ascii=False, date_format='iso')
+        
+        if len(df_colab) > 0:
+            print(f"   ✅ Colaboraciones generado: {len(df_colab)} entidades")
+        
+        df_fact = pd.DataFrame(facturas_list) if facturas_list else pd.DataFrame()
+        json_path_fact = os.path.join(output_dir, "Excel_Facturas_2.2.json")
+        df_fact.to_json(json_path_fact, orient='records', force_ascii=False, date_format='iso')
+        
+        if len(df_fact) > 0:
+            print(f"   ✅ Facturas generado: {len(df_fact)} registros")
 
     except Exception as e:
         print(f"   ❌ Error General en Colaboraciones: {e}")
@@ -462,6 +565,9 @@ def procesar_anexo(archivo_especifico=None, cliente_nif=None, proyecto_acronimo=
     print(f"   📝 Metadatos guardados: {os.path.basename(metadata_path)}")
     
     print("--- FIN PROCESAMIENTO ---\n")
+    
+    # Retornar los metadatos para que el backend pueda enviarlos al frontend
+    return metadata
 
 if __name__ == "__main__":
     procesar_anexo()

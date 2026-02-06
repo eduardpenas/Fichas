@@ -331,7 +331,8 @@ async def upload_anexo(file: UploadFile = File(...), cliente_nif: str = None, pr
     1. Recibe el archivo Anexo II y opcionalmente cliente_nif + proyecto_acronimo (como parámetros query).
     2. Lo guarda en la carpeta inputs.
     3. Ejecuta tu script 'procesar_anexo.py'.
-    4. Si se proporciona cliente_nif y proyecto_acronimo, los JSONs se guardan en la carpeta del proyecto.
+    4. Retorna los metadatos extraídos (incluyendo el año fiscal).
+    5. Si se proporciona cliente_nif y proyecto_acronimo, los JSONs se guardan en la carpeta del proyecto.
     """
     try:
         # Limpiar parámetros
@@ -361,8 +362,9 @@ async def upload_anexo(file: UploadFile = File(...), cliente_nif: str = None, pr
         
         # Ejecutar tu lógica de extracción PROCESANDO ESPECÍFICAMENTE EL ARCHIVO SUBIDO
         print(f"🍳 Cocinando: Procesando Anexo_Subido.xlsx...")
-        procesar_anexo(archivo_especifico="Anexo_Subido.xlsx", cliente_nif=cliente_nif, proyecto_acronimo=proyecto_acronimo)
+        metadata = procesar_anexo(archivo_especifico="Anexo_Subido.xlsx", cliente_nif=cliente_nif, proyecto_acronimo=proyecto_acronimo)
         print(f"✅ Anexo procesado exitosamente")
+        print(f"📊 Metadatos extraídos: {metadata}")
         
         # Verificar archivos generados
         if cliente_nif:
@@ -388,7 +390,11 @@ async def upload_anexo(file: UploadFile = File(...), cliente_nif: str = None, pr
                 print(f"   ⚠️ {out_file} NO ENCONTRADO")
         
         print(f"{'='*60}\n")
-        return {"status": "success", "message": "Anexo procesado y Excels generados"}
+        return {
+            "status": "success",
+            "message": "Anexo procesado y Excels generados",
+            "metadata": metadata or {"anio_fiscal": 2024, "nif_cliente": "", "entidad_solicitante": ""}
+        }
     except Exception as e:
         print(f"❌ ERROR EN UPLOAD-ANEXO: {str(e)}")
         import traceback
@@ -680,6 +686,8 @@ def get_colaboraciones_data(cliente_nif: str = None, proyecto_acronimo: str = No
 async def update_colaboraciones_data(request: UpdateDataRequest):
     """
     Recibe los datos MODIFICADOS de colaboraciones y sobrescribe el archivo.
+    Automáticamente rellena la columna "NIF 2" con el cliente_nif del usuario.
+    
     - Si cliente_nif + proyecto_acronimo se proporcionan, guarda en Cliente_{nif}/{proyecto}/data/
     - Si solo cliente_nif se proporciona, guarda en Cliente_{nif}/data/ (compatibilidad)
     - Si nada se proporciona, guarda en INPUT_DIR (compatibilidad heredada)
@@ -690,6 +698,13 @@ async def update_colaboraciones_data(request: UpdateDataRequest):
             request.cliente_nif = request.cliente_nif.strip()
         if request.proyecto_acronimo:
             request.proyecto_acronimo = request.proyecto_acronimo.strip().upper()
+        
+        # RELLENAR "NIF 2" CON CLIENTE_NIF
+        # Si se proporciona cliente_nif, rellenar automáticamente la columna "NIF 2"
+        if request.cliente_nif:
+            print(f"\n📝 Rellenando NIF 2 con cliente_nif: {request.cliente_nif}")
+            for item in request.data:
+                item["NIF 2"] = request.cliente_nif
         
         df = pd.DataFrame(request.data)
         
@@ -715,6 +730,7 @@ async def update_colaboraciones_data(request: UpdateDataRequest):
                 formato = "Excel"
         
         df.to_json(json_path, orient='records', force_ascii=False, date_format='iso')
+        print(f"   ✅ Colaboraciones guardadas con NIF 2 = {request.cliente_nif if request.cliente_nif else '[vacío]'}")
         return {"status": "success", "message": f"Datos guardados correctamente"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -887,6 +903,12 @@ def check_available_fichas(cliente_nif: str = None, proyecto_acronimo: str = Non
     Retorna información sobre qué datos existen sin generar fichas.
     """
     try:
+        print(f"\n{'='*60}")
+        print(f"🔍 CHECK-AVAILABLE-FICHAS INICIADO")
+        print(f"   Cliente NIF: {cliente_nif or 'NONE'}")
+        print(f"   Proyecto: {proyecto_acronimo or 'NONE'}")
+        print(f"{'='*60}")
+        
         # Limpiar parámetros
         if cliente_nif:
             cliente_nif = cliente_nif.strip()
@@ -898,15 +920,26 @@ def check_available_fichas(cliente_nif: str = None, proyecto_acronimo: str = Non
             if proyecto_acronimo:
                 project_dir = get_project_dir(cliente_nif, proyecto_acronimo)
                 data_dir = os.path.join(project_dir, 'data')
+                print(f"   📁 Modo PROYECTO: {data_dir}")
             else:
                 data_dir = os.path.join(get_client_dir(cliente_nif), 'data')
+                print(f"   📁 Modo CLIENTE: {data_dir}")
         else:
             data_dir = INPUT_DIR
+            print(f"   📁 Modo INPUT_DIR: {data_dir}")
+        
+        print(f"   ✓ Directorio de datos: {data_dir}")
+        print(f"   ✓ Existe: {os.path.exists(data_dir)}")
         
         # Rutas de JSONs
         json_personal = os.path.join(data_dir, "Excel_Personal_2.1.json")
         json_colaboraciones = os.path.join(data_dir, "Excel_Colaboraciones_2.2.json")
         json_facturas = os.path.join(data_dir, "Excel_Facturas_2.2.json")
+        
+        print(f"\n   📄 Archivos esperados:")
+        print(f"      - {os.path.basename(json_personal)}: {os.path.exists(json_personal)}")
+        print(f"      - {os.path.basename(json_colaboraciones)}: {os.path.exists(json_colaboraciones)}")
+        print(f"      - {os.path.basename(json_facturas)}: {os.path.exists(json_facturas)}")
         
         # Contar datos en cada JSON
         personal_count = 0
@@ -917,26 +950,40 @@ def check_available_fichas(cliente_nif: str = None, proyecto_acronimo: str = Non
             try:
                 df_personal = pd.read_json(json_personal)
                 personal_count = len(df_personal)
-            except:
-                pass
+                print(f"      ✓ Personal: {personal_count} registros")
+            except Exception as e:
+                print(f"      ❌ Error leyendo Personal: {e}")
+        else:
+            print(f"      ❌ Personal no encontrado en {json_personal}")
         
         if os.path.exists(json_colaboraciones):
             try:
                 df_colab = pd.read_json(json_colaboraciones)
                 colaboraciones_count = len(df_colab)
-            except:
-                pass
+                print(f"      ✓ Colaboraciones: {colaboraciones_count} registros")
+            except Exception as e:
+                print(f"      ❌ Error leyendo Colaboraciones: {e}")
+        else:
+            print(f"      ❌ Colaboraciones no encontrado en {json_colaboraciones}")
         
         if os.path.exists(json_facturas):
             try:
                 df_fact = pd.read_json(json_facturas)
                 facturas_count = len(df_fact)
-            except:
-                pass
+                print(f"      ✓ Facturas: {facturas_count} registros")
+            except Exception as e:
+                print(f"      ❌ Error leyendo Facturas: {e}")
+        else:
+            print(f"      ❌ Facturas no encontrado en {json_facturas}")
         
         # Determinar qué fichas se pueden generar
         puede_generar_2_1 = personal_count > 0
         puede_generar_2_2 = colaboraciones_count > 0 and facturas_count > 0
+        
+        print(f"\n   📊 Resultados:")
+        print(f"      - Puede generar 2.1: {puede_generar_2_1}")
+        print(f"      - Puede generar 2.2: {puede_generar_2_2}")
+        print(f"{'='*60}\n")
         
         return {
             "status": "success",
@@ -949,7 +996,12 @@ def check_available_fichas(cliente_nif: str = None, proyecto_acronimo: str = Non
             }
         }
     except Exception as e:
-        print(f"❌ Error en check_available_fichas: {e}")
+        print(f"\n{'='*60}")
+        print(f"❌ ERROR EN CHECK_AVAILABLE_FICHAS")
+        print(f"   Error: {e}")
+        import traceback
+        print(traceback.format_exc())
+        print(f"{'='*60}\n")
         return {
             "status": "error",
             "puede_generar_2_1": False,
@@ -1319,34 +1371,105 @@ def generate_ficha_2_2_only(cliente_nif: str = None, proyecto_acronimo: str = No
 
 
 @app.get("/download-fichas")
-async def download_fichas(cliente_nif: str = None):
+async def download_fichas(cliente_nif: str = None, proyecto_acronimo: str = None):
     """
-    Descarga todas las fichas generadas como un ZIP.
-    Si se proporciona cliente_nif, usa los datos del cliente específico.
+    Descarga todas las fichas generadas como un ZIP, REGENERÁNDOLAS con datos frescos.
+    
+    Esto asegura que el ZIP contenga las firmas más recientes.
+    
+    Parámetros:
+      - cliente_nif: opcional, para usar datos del cliente específico
+      - proyecto_acronimo: opcional, para usar datos del proyecto específico (requiere cliente_nif)
     """
     try:
+        # Limpiar parámetros
         if cliente_nif:
             cliente_nif = cliente_nif.strip()
-            print(f"\n⬇️ DOWNLOAD-FICHAS para cliente: {cliente_nif}")
+        if proyecto_acronimo:
+            proyecto_acronimo = proyecto_acronimo.strip().upper()
+        
+        # Determinar data_dir (igual que en generate-fichas)
+        if cliente_nif:
+            if proyecto_acronimo:
+                print(f"\n⬇️ DOWNLOAD-FICHAS: Regenerando para cliente {cliente_nif} / proyecto {proyecto_acronimo}")
+                project_dir = get_project_dir(cliente_nif, proyecto_acronimo)
+                data_dir = os.path.join(project_dir, 'data')
+            else:
+                print(f"\n⬇️ DOWNLOAD-FICHAS: Regenerando para cliente {cliente_nif}")
+                data_dir = os.path.join(get_client_dir(cliente_nif), 'data')
         else:
-            print(f"\n⬇️ DOWNLOAD-FICHAS usando OUTPUT_DIR general")
+            print(f"\n⬇️ DOWNLOAD-FICHAS: Regenerando desde INPUT_DIR")
+            data_dir = INPUT_DIR
         
         output_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'outputs')
+        os.makedirs(output_dir, exist_ok=True)
         
-        if not os.path.exists(output_dir):
-            raise HTTPException(status_code=404, detail="No hay fichas generadas. Ejecuta /generate-fichas primero.")
+        print(f"   📂 Data dir: {data_dir} (existe: {os.path.exists(data_dir)})")
+        
+        # Rutas de JSONs
+        json_personal = os.path.join(data_dir, "Excel_Personal_2.1.json")
+        json_colaboraciones = os.path.join(data_dir, "Excel_Colaboraciones_2.2.json")
+        json_facturas = os.path.join(data_dir, "Excel_Facturas_2.2.json")
+        
+        # Plantillas
+        plantilla_2_1 = os.path.join(INPUT_DIR, "2.1.docx")
+        plantilla_2_2 = os.path.join(INPUT_DIR, "2.2.docx")
+        
+        # Salidas
+        salida_2_1 = os.path.join(output_dir, "Ficha_2_1.docx")
+        salida_2_2 = os.path.join(output_dir, "Ficha_2_2.docx")
+        
+        # Año fiscal
+        anio_fiscal = 2024
+        
+        # Determinar qué fichas se pueden generar
+        tiene_personal = os.path.exists(json_personal)
+        tiene_colaboraciones = os.path.exists(json_colaboraciones)
+        tiene_facturas = os.path.exists(json_facturas)
+        
+        generadas = []
+        
+        # REGENERAR Ficha 2.1
+        if tiene_personal and os.path.exists(plantilla_2_1):
+            try:
+                df_personal = pd.read_json(json_personal)
+                personal_count = len(df_personal)
+                if personal_count > 0:
+                    print(f"   🔄 Regenerando Ficha 2.1 ({personal_count} personas)...")
+                    generar_ficha_2_1(json_personal, plantilla_2_1, salida_2_1, anio_fiscal, 'ACR')
+                    generadas.append(salida_2_1)
+                    print(f"   ✅ Ficha 2.1 regenerada")
+            except Exception as e:
+                print(f"   ❌ Error regenerando Ficha 2.1: {e}")
+        
+        # REGENERAR Ficha 2.2
+        if tiene_colaboraciones and tiene_facturas and os.path.exists(plantilla_2_2):
+            try:
+                df_colab = pd.read_json(json_colaboraciones)
+                df_fact = pd.read_json(json_facturas)
+                if len(df_colab) > 0 and len(df_fact) > 0:
+                    print(f"   🔄 Regenerando Ficha 2.2 ({len(df_colab)} colaboraciones, {len(df_fact)} facturas)...")
+                    print(f"   ℹ️ NIF 2 será rellenado con: {cliente_nif if cliente_nif else '[no proporcionado]'}")
+                    generar_ficha_2_2(json_colaboraciones, json_facturas, plantilla_2_2, salida_2_2, cliente_nombre=None, cliente_nif=cliente_nif, anio=anio_fiscal)
+                    generadas.append(salida_2_2)
+                    print(f"   ✅ Ficha 2.2 regenerada")
+            except Exception as e:
+                print(f"   ❌ Error regenerando Ficha 2.2: {e}")
+        
+        if not generadas:
+            raise HTTPException(status_code=400, detail="No hay datos para generar fichas")
         
         # Crear un ZIP en memoria
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-            for filename in os.listdir(output_dir):
-                file_path = os.path.join(output_dir, filename)
-                if os.path.isfile(file_path):
-                    # Agregar archivo al ZIP
-                    zip_file.write(file_path, arcname=filename)
+            for file_path in generadas:
+                if os.path.exists(file_path):
+                    arcname = os.path.basename(file_path)
+                    zip_file.write(file_path, arcname=arcname)
         
         zip_buffer.seek(0)
         
+        print(f"   📥 ZIP creado con {len(generadas)} fichas")
         return StreamingResponse(
             iter([zip_buffer.getvalue()]),
             media_type="application/zip",
@@ -1355,48 +1478,171 @@ async def download_fichas(cliente_nif: str = None):
     except HTTPException:
         raise
     except Exception as e:
+        print(f"❌ Error en download_fichas: {e}")
         raise HTTPException(status_code=500, detail=f"Error al descargar fichas: {str(e)}")
 
 
 @app.get("/download-ficha")
-def download_ficha(name: str, cliente_nif: str = None):
-    """Descarga un fichero individual desde la carpeta outputs.
+def download_ficha(name: str, cliente_nif: str = None, proyecto_acronimo: str = None):
+    """Descarga una ficha individual, REGENERÁNDOLA con datos frescos antes de descargar.
+    
+    Esto asegura que la ficha descargada contenga los datos más recientes.
+    
     Parámetros: 
-      - name: nombre del fichero (por ejemplo: Ficha_2_1.docx)
+      - name: nombre del fichero (por ejemplo: Ficha_2_1.docx o Ficha_2_2.docx)
       - cliente_nif: opcional, para usar datos del cliente específico
+      - proyecto_acronimo: opcional, para usar datos del proyecto específico (requiere cliente_nif)
     """
     try:
+        # Limpiar parámetros
         if cliente_nif:
             cliente_nif = cliente_nif.strip()
-            print(f"\n⬇️ DOWNLOAD-FICHA para cliente: {cliente_nif} - archivo: {name}")
+        if proyecto_acronimo:
+            proyecto_acronimo = proyecto_acronimo.strip().upper()
+        
+        # Determinar data_dir (igual que en generate-fichas)
+        if cliente_nif:
+            if proyecto_acronimo:
+                print(f"\n⬇️ DOWNLOAD-FICHA: Regenerando {name} para cliente {cliente_nif} / proyecto {proyecto_acronimo}")
+                project_dir = get_project_dir(cliente_nif, proyecto_acronimo)
+                data_dir = os.path.join(project_dir, 'data')
+            else:
+                print(f"\n⬇️ DOWNLOAD-FICHA: Regenerando {name} para cliente {cliente_nif}")
+                data_dir = os.path.join(get_client_dir(cliente_nif), 'data')
         else:
-            print(f"\n⬇️ DOWNLOAD-FICHA desde OUTPUT_DIR - archivo: {name}")
+            print(f"\n⬇️ DOWNLOAD-FICHA: Regenerando {name} desde INPUT_DIR")
+            data_dir = INPUT_DIR
+        
+        print(f"   📂 Usando data_dir: {data_dir}")
+        print(f"   ✓ Directorio existe: {os.path.exists(data_dir)}")
         
         output_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'outputs')
-        file_path = os.path.join(output_dir, os.path.basename(name))
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Rutas de JSONs (datos frescos desde disco)
+        json_personal = os.path.join(data_dir, "Excel_Personal_2.1.json")
+        json_colaboraciones = os.path.join(data_dir, "Excel_Colaboraciones_2.2.json")
+        json_facturas = os.path.join(data_dir, "Excel_Facturas_2.2.json")
+        
+        print(f"   📄 Personal existe: {os.path.exists(json_personal)}")
+        print(f"   📄 Colaboraciones existe: {os.path.exists(json_colaboraciones)}")
+        print(f"   📄 Facturas existe: {os.path.exists(json_facturas)}")
+        
+        # Plantillas
+        plantilla_2_1 = os.path.join(INPUT_DIR, "2.1.docx")
+        plantilla_2_2 = os.path.join(INPUT_DIR, "2.2.docx")
+        
+        # Determinar qué ficha descargar basado en el nombre
+        ficha_name = os.path.basename(name).lower()
+        
+        # Año fiscal (por defecto 2024)
+        anio_fiscal = 2024
+        
+        # REGENERAR FICHA 2.1
+        if "2_1" in ficha_name or "2.1" in ficha_name:
+            salida_2_1 = os.path.join(output_dir, "Ficha_2_1.docx")
+            
+            if not os.path.exists(json_personal):
+                raise HTTPException(status_code=400, detail="No hay datos de personal. Cargue un Anexo primero.")
+            
+            try:
+                df_personal = pd.read_json(json_personal)
+                personal_count = len(df_personal)
+                print(f"   ✓ Personal: {personal_count} registros")
+                
+                if personal_count == 0:
+                    raise HTTPException(status_code=400, detail="No hay registros de personal para generar Ficha 2.1")
+                
+                if not os.path.exists(plantilla_2_1):
+                    raise HTTPException(status_code=400, detail="Plantilla 2.1 no encontrada")
+                
+                # REGENERAR con datos frescos
+                print(f"   🔄 Regenerando Ficha 2.1 con {personal_count} personas...")
+                generar_ficha_2_1(json_personal, plantilla_2_1, salida_2_1, anio_fiscal, 'ACR')
+                print(f"   ✅ Ficha 2.1 regenerada exitosamente")
+                
+            except HTTPException:
+                raise
+            except Exception as e:
+                print(f"   ❌ Error regenerando Ficha 2.1: {e}")
+                raise HTTPException(status_code=500, detail=f"Error al generar Ficha 2.1: {str(e)}")
+            
+            file_path = salida_2_1
+        
+        # REGENERAR FICHA 2.2
+        elif "2_2" in ficha_name or "2.2" in ficha_name:
+            salida_2_2 = os.path.join(output_dir, "Ficha_2_2.docx")
+            
+            if not os.path.exists(json_colaboraciones) or not os.path.exists(json_facturas):
+                raise HTTPException(status_code=400, detail="No hay datos de colaboraciones o facturas. Cargue un Anexo primero.")
+            
+            try:
+                df_colab = pd.read_json(json_colaboraciones)
+                df_fact = pd.read_json(json_facturas)
+                colaboraciones_count = len(df_colab)
+                facturas_count = len(df_fact)
+                print(f"   ✓ Colaboraciones: {colaboraciones_count} registros")
+                print(f"   ✓ Facturas: {facturas_count} registros")
+                
+                if colaboraciones_count == 0 or facturas_count == 0:
+                    raise HTTPException(status_code=400, detail="No hay registros suficientes de colaboraciones o facturas")
+                
+                if not os.path.exists(plantilla_2_2):
+                    raise HTTPException(status_code=400, detail="Plantilla 2.2 no encontrada")
+                
+                # REGENERAR con datos frescos y cliente_nif para rellenar NIF 2
+                print(f"   🔄 Regenerando Ficha 2.2 con {colaboraciones_count} colaboraciones y {facturas_count} facturas...")
+                print(f"   ℹ️ NIF 2 será rellenado con: {cliente_nif if cliente_nif else '[no proporcionado]'}")
+                generar_ficha_2_2(json_colaboraciones, json_facturas, plantilla_2_2, salida_2_2, cliente_nombre=None, cliente_nif=cliente_nif, anio=anio_fiscal)
+                print(f"   ✅ Ficha 2.2 regenerada exitosamente")
+                
+            except HTTPException:
+                raise
+            except Exception as e:
+                print(f"   ❌ Error regenerando Ficha 2.2: {e}")
+                raise HTTPException(status_code=500, detail=f"Error al generar Ficha 2.2: {str(e)}")
+            
+            file_path = salida_2_2
+        else:
+            raise HTTPException(status_code=400, detail=f"Nombre de ficha no reconocido: {name}. Use 'Ficha_2_1.docx' o 'Ficha_2_2.docx'")
+        
+        # Verificar que la ficha fue generada correctamente
         if not os.path.exists(file_path):
-            raise HTTPException(status_code=404, detail="Fichero no encontrado")
+            raise HTTPException(status_code=500, detail="La ficha no fue generada correctamente")
+        
+        print(f"   📥 Descargando: {os.path.basename(file_path)}")
         return FileResponse(path=file_path, filename=os.path.basename(file_path), media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+        
     except HTTPException:
         raise
     except Exception as e:
+        print(f"❌ Error en download_ficha: {e}")
         raise HTTPException(status_code=500, detail=f"Error al descargar fichero: {str(e)}")
 
 
 @app.get("/preview-ficha")
-def preview_ficha(name: str, cliente_nif: str = None):
+def preview_ficha(name: str, cliente_nif: str = None, proyecto_acronimo: str = None):
     """Devuelve una previsualización HTML simple del contenido textual de un .docx.
     No realiza conversiones complejas: extrae párrafos y los devuelve en HTML.
     Parámetros:
       - name: nombre del fichero (por ejemplo: Ficha_2_1.docx)
       - cliente_nif: opcional, para usar datos del cliente específico
+      - proyecto_acronimo: opcional, para usar datos del proyecto específico (requiere cliente_nif)
     """
     try:
         from docx import Document as DocxDocument
 
+        # Limpiar parámetros
         if cliente_nif:
             cliente_nif = cliente_nif.strip()
-            print(f"\n👁️ PREVIEW-FICHA para cliente: {cliente_nif} - archivo: {name}")
+        if proyecto_acronimo:
+            proyecto_acronimo = proyecto_acronimo.strip().upper()
+        
+        if cliente_nif:
+            if proyecto_acronimo:
+                print(f"\n👁️ PREVIEW-FICHA para cliente: {cliente_nif} / proyecto: {proyecto_acronimo} - archivo: {name}")
+            else:
+                print(f"\n👁️ PREVIEW-FICHA para cliente: {cliente_nif} - archivo: {name}")
         else:
             print(f"\n👁️ PREVIEW-FICHA desde OUTPUT_DIR - archivo: {name}")
 

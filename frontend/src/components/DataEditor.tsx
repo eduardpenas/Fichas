@@ -55,7 +55,18 @@ const COLUMN_DEFINITIONS: Record<string, string[]> = {
   ],
 };
 
-// Create empty row template based on data type
+// Mapeo de nombres display para mostrar en la UI
+// Las claves internas permanecen igual, solo cambia lo que se muestra
+const COLUMN_DISPLAY_NAMES: Record<string, string> = {
+  'NIF 2': 'NIF cliente',
+};
+
+// Función para obtener el nombre display de una columna
+const getDisplayName = (colName: string): string => {
+  return COLUMN_DISPLAY_NAMES[colName] || colName;
+};
+
+// Crear empty row template based on data type
 const createEmptyRow = (dataType: 'personal' | 'colaboraciones' | 'facturas') => {
   const columns = COLUMN_DEFINITIONS[dataType];
   const emptyRow: any = {};
@@ -73,17 +84,102 @@ export const DataEditor: React.FC<DataEditorProps> = ({
   onClose,
   clienteNif,
   proyectoAcronimo,
+  onDataSaved,
 }) => {
   const [data, setData] = useState<any[]>([]);
   const [displayData, setDisplayData] = useState<any[]>([]);
   const [editingCell, setEditingCell] = useState<{ row: number; col: string } | null>(null);
   const [showEditor, setShowEditor] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set()); // Celdas seleccionadas: "row-col"
 
   const typeLabels = {
     personal: 'Personal (Ficha 2.1)',
     colaboraciones: 'Colaboraciones (Ficha 2.2)',
     facturas: 'Facturas (Ficha 2.2)',
+  };
+
+  // Obtener todas las celdas disponibles en orden
+  const getAllCells = (): Array<{ row: number; col: string }> => {
+    const cells: Array<{ row: number; col: string }> = [];
+    const columns = displayData.length > 0 ? Object.keys(displayData[0]) : COLUMN_DEFINITIONS[dataType];
+    displayData.forEach((_, rowIdx) => {
+      columns.forEach(col => {
+        cells.push({ row: rowIdx, col });
+      });
+    });
+    return cells;
+  };
+
+  // Obtener el índice de una celda
+  const getCellIndex = (row: number, col: string): number => {
+    return getAllCells().findIndex(c => c.row === row && c.col === col);
+  };
+
+  // Navegar a la siguiente celda
+  const navigateToNextCell = (currentRow: number, currentCol: string, direction: 'next' | 'prev') => {
+    const cells = getAllCells();
+    const currentIndex = getCellIndex(currentRow, currentCol);
+    const nextIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
+    
+    if (nextIndex >= 0 && nextIndex < cells.length) {
+      const nextCell = cells[nextIndex];
+      setEditingCell({ row: nextCell.row, col: nextCell.col });
+    }
+  };
+
+  // Manejar selección múltiple de celdas
+  const handleCellClick = (rowIdx: number, col: string, event: React.MouseEvent) => {
+    const cellKey = `${rowIdx}-${col}`;
+    const newSelected = new Set(selectedCells);
+    
+    if (event.ctrlKey || event.metaKey) {
+      // Ctrl/Cmd + Click: toggle individual cell
+      if (newSelected.has(cellKey)) {
+        newSelected.delete(cellKey);
+      } else {
+        newSelected.add(cellKey);
+      }
+    } else if (event.shiftKey && editingCell) {
+      // Shift + Click: select range (solo en la misma fila o columna)
+      newSelected.clear();
+      const cells = getAllCells();
+      const currentIndex = getCellIndex(editingCell.row, editingCell.col);
+      const targetIndex = getCellIndex(rowIdx, col);
+      const minIdx = Math.min(currentIndex, targetIndex);
+      const maxIdx = Math.max(currentIndex, targetIndex);
+      
+      for (let i = minIdx; i <= maxIdx; i++) {
+        newSelected.add(`${cells[i].row}-${cells[i].col}`);
+      }
+    } else {
+      // Click normal: solo esta celda
+      newSelected.clear();
+      newSelected.add(cellKey);
+    }
+    
+    setSelectedCells(newSelected);
+    setEditingCell({ row: rowIdx, col });
+  };
+
+  // Aplicar cambio a una celda o múltiples celdas
+  const applyChangeToCell = (rowIndex: number, column: string, value: string) => {
+    const newData = [...displayData];
+    
+    if (selectedCells.size > 1 && selectedCells.has(`${rowIndex}-${column}`)) {
+      // Aplicar a todas las celdas seleccionadas
+      selectedCells.forEach(cellKey => {
+        const [row, col] = cellKey.split('-');
+        const rowIdx = parseInt(row);
+        newData[rowIdx] = { ...newData[rowIdx], [col]: value };
+      });
+    } else {
+      // Aplicar solo a esta celda
+      newData[rowIndex] = { ...newData[rowIndex], [column]: value };
+    }
+    
+    setDisplayData(newData);
+    setHasChanges(true);
   };
 
   const loadData = async () => {
@@ -126,10 +222,7 @@ export const DataEditor: React.FC<DataEditorProps> = ({
   }, [showEditor, dataType]);
 
   const handleCellChange = (rowIndex: number, column: string, value: string) => {
-    const newData = [...displayData];
-    newData[rowIndex] = { ...newData[rowIndex], [column]: value };
-    setDisplayData(newData);
-    setHasChanges(true);
+    applyChangeToCell(rowIndex, column, value);
   };
 
   const handleAddRow = () => {
@@ -162,12 +255,11 @@ export const DataEditor: React.FC<DataEditorProps> = ({
       }
       setData(displayData);
       setHasChanges(false);
+      setSelectedCells(new Set());
       onSuccess(`✅ Datos de ${typeLabels[dataType]} guardados (${displayData.length} registros)`);
       
       // Notify parent to refresh available fichas
-      if (onDataSaved) {
-        setTimeout(() => onDataSaved(), 500);
-      }
+      setTimeout(() => onDataSaved?.(), 500);
     } catch (error: any) {
       onError(`❌ Error al guardar: ${error.response?.data?.detail || error.message}`);
     } finally {
@@ -179,6 +271,7 @@ export const DataEditor: React.FC<DataEditorProps> = ({
     setDisplayData(data);
     setHasChanges(false);
     setEditingCell(null);
+    setSelectedCells(new Set());
     onClose();
   };
 
@@ -237,7 +330,7 @@ export const DataEditor: React.FC<DataEditorProps> = ({
                         key={col}
                         className="border px-2 py-2 text-left font-semibold text-gray-700"
                       >
-                        {col}
+                        {getDisplayName(col)}
                       </th>
                     ))}
                     <th className="border px-2 py-2 w-12 text-center font-semibold text-gray-700">
@@ -251,36 +344,48 @@ export const DataEditor: React.FC<DataEditorProps> = ({
                       <td className="border px-2 py-2 text-center text-gray-500 text-xs bg-gray-50">
                         {rowIdx + 1}
                       </td>
-                      {columns.map((col) => (
-                        <td
-                          key={`${rowIdx}-${col}`}
-                          className="border px-2 py-2"
-                          onClick={() => setEditingCell({ row: rowIdx, col })}
-                        >
-                          {editingCell?.row === rowIdx && editingCell?.col === col ? (
-                            <input
-                              type="text"
-                              value={displayData[rowIdx][col] || ''}
-                              onChange={(e) =>
-                                handleCellChange(rowIdx, col, e.target.value)
-                              }
-                              onBlur={() => setEditingCell(null)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') setEditingCell(null);
-                                if (e.key === 'Escape') {
-                                  handleCancel();
+                      {columns.map((col) => {
+                        const cellKey = `${rowIdx}-${col}`;
+                        const isSelected = selectedCells.has(cellKey);
+                        const isEditing = editingCell?.row === rowIdx && editingCell?.col === col;
+                        
+                        return (
+                          <td
+                            key={cellKey}
+                            className={`border px-2 py-2 cursor-pointer transition ${
+                              isSelected ? 'bg-blue-200' : isEditing ? 'bg-yellow-100' : 'hover:bg-yellow-50'
+                            }`}
+                            onClick={(e) => handleCellClick(rowIdx, col, e)}
+                          >
+                            {isEditing ? (
+                              <input
+                                type="text"
+                                value={displayData[rowIdx][col] || ''}
+                                onChange={(e) =>
+                                  handleCellChange(rowIdx, col, e.target.value)
                                 }
-                              }}
-                              autoFocus
-                              className="w-full px-1 py-0 border rounded"
-                            />
-                          ) : (
-                            <span className="cursor-pointer hover:bg-yellow-100 px-1 rounded block">
-                              {displayData[rowIdx][col] || ''}
-                            </span>
-                          )}
-                        </td>
-                      ))}
+                                onBlur={() => setEditingCell(null)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Tab') {
+                                    e.preventDefault();
+                                    navigateToNextCell(rowIdx, col, e.shiftKey ? 'prev' : 'next');
+                                  } else if (e.key === 'Enter') {
+                                    setEditingCell(null);
+                                  } else if (e.key === 'Escape') {
+                                    handleCancel();
+                                  }
+                                }}
+                                autoFocus
+                                className="w-full px-1 py-0 border rounded"
+                              />
+                            ) : (
+                              <span className="px-1 rounded block">
+                                {displayData[rowIdx][col] || ''}
+                              </span>
+                            )}
+                          </td>
+                        );
+                      })}
                       <td className="border px-2 py-2 text-center bg-gray-50">
                         <button
                           onClick={() => handleDeleteRow(rowIdx)}

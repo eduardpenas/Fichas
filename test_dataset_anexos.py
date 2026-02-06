@@ -189,8 +189,8 @@ def main():
         print_color(f"❌ Directorio no encontrado: {dataset_dir}", 'RED')
         return
     
-    # Listar archivos
-    archivos = [f for f in os.listdir(dataset_dir) if f.endswith('.xlsx')]
+    # Listar archivos (excluir archivos temporales de Excel como ~$...)
+    archivos = [f for f in os.listdir(dataset_dir) if f.endswith('.xlsx') and not f.startswith('~$')]
     print(f"📂 Encontrados {len(archivos)} archivos Excel\n")
     
     estado_general = {

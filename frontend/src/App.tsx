@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
 import FileUploader from './components/FileUploader';
-import EditableTable from './components/EditableTable';
 import ActionsPanel from './components/ActionsPanel';
 import ClientSelector from './components/ClientSelector';
 import ProjectSelector from './components/ProjectSelector';
@@ -16,17 +15,18 @@ interface Alert {
 export default function App() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [editedData, setEditedData] = useState<any[]>([]);
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
   const [selectedClientName, setSelectedClientName] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [uploadRefreshTrigger, setUploadRefreshTrigger] = useState<number>(0);
-  const editableTableRef = useRef<any>(null);  // ← Ref para refrescar la tabla
+  const [anexoMetadata, setAnexoMetadata] = useState<any>(null);  // ← Para almacenar metadatos extraídos
+  const alertIdCounterRef = useRef<number>(0);  // ← Contador para IDs únicos de alertas
 
   const addAlert = (type: Alert['type'], message: string) => {
-    const id = Date.now().toString();
+    alertIdCounterRef.current++;
+    const id = `${Date.now()}-${alertIdCounterRef.current}`;  // Combinación: timestamp + contador
     const alert: Alert = { id, type, message };
-    console.log(`[App] 📢 addAlert - type: ${type}, message: "${message}"`);
+    console.log(`[App] 📢 addAlert - type: ${type}, message: "${message}", id: ${id}`);
     setAlerts(prev => {
       console.log(`[App] 📊 alerts state actualizado:`, [alert, ...prev]);
       return [alert, ...prev];
@@ -49,21 +49,23 @@ export default function App() {
     console.log(`    Proyecto: ${selectedProject}`);
     console.log('='.repeat(60));
     
-    console.log('[App] ♻️ Forzando recarga de datos...');
-    
-    // Forzar recarga de tabla
-    if (editableTableRef.current?.loadData) {
-      console.log('[App] 📊 Recargando tabla...');
-      editableTableRef.current.loadData();
-    }
-    
-    // Forzar recarga de fichas disponibles
-    console.log('[App] 🔍 Re-verificando fichas disponibles...');
+    console.log('[App] ♻️ Re-verificando fichas disponibles...');
     setUploadRefreshTrigger(prev => {
       const newValue = prev + 1;
       console.log(`[App] 📍 uploadRefreshTrigger: ${prev} → ${newValue}`);
       return newValue;
     });
+  };
+
+  const handleAnexoMetadata = (metadata: any) => {
+    // Callback para recibir metadatos del anexo
+    console.log('[App] 📊 Metadatos del Anexo recibidos:', metadata);
+    setAnexoMetadata(metadata);
+    
+    // Mostrar alerta con información del año fiscal
+    if (metadata?.anio_fiscal) {
+      addAlert('success', `✓ Año fiscal extraído del Anexo: ${metadata.anio_fiscal}`);
+    }
   };
 
   const handleCVsUploadComplete = async () => {
@@ -74,11 +76,6 @@ export default function App() {
       const response = await apiService.processCVs(selectedClient || undefined, selectedProject || undefined);
       console.log('[App] CVs procesados:', response.data);
       addAlert('success', `✅ CVs procesados automáticamente: ${response.data.message}`);
-      
-      // Refrescar la tabla para ver los datos actualizados
-      if (editableTableRef.current?.loadData) {
-        editableTableRef.current.loadData();
-      }
     } catch (error: any) {
       console.error('[App] Error procesando CVs:', error);
       addAlert('error', `❌ Error procesando CVs: ${error.response?.data?.detail || error.message}`);
@@ -182,42 +179,19 @@ export default function App() {
               onLoading={setIsLoading}
               onUploadComplete={handleUploadComplete}
               onCVsUploadComplete={handleCVsUploadComplete}
+              onAnexoMetadata={handleAnexoMetadata}
             />
           </div>
         </section>
 
-        {/* Step 2: Edit Data */}
-        <section className="mb-8">
-          <div className="bg-white rounded-lg shadow-sm p-1">
-            <div className="flex items-center gap-3 mb-6 p-5 bg-green-50 rounded">
-              <span className="text-3xl">2️⃣</span>
-              <div>
-                <h2 className="text-lg font-bold">Revisar y Editar Datos</h2>
-                <p className="text-sm text-gray-600">Visualiza y modifica la información antes de generar fichas</p>
-              </div>
-            </div>
-
-            <EditableTable
-              ref={editableTableRef}
-              clienteNif={selectedClient}
-              proyectoAcronimo={selectedProject}
-              title="📊 Tabla de Personal (Ficha 2.1)"
-              subtitle="Edita los datos haciendo clic en cada celda. Los cambios se guardan localmente."
-              onDataChange={setEditedData}
-              onError={(msg) => addAlert('error', msg)}
-              onLoading={setIsLoading}
-            />
-          </div>
-        </section>
-
-        {/* Step 3: Actions */}
+        {/* Step 2: Actions */}
         <section className="mb-8">
           <div className="bg-white rounded-lg shadow-sm p-1">
             <div className="flex items-center gap-3 mb-6 p-5 bg-purple-50 rounded">
-              <span className="text-3xl">3️⃣</span>
+              <span className="text-3xl">2️⃣</span>
               <div>
-                <h2 className="text-lg font-bold">Procesar y Generar</h2>
-                <p className="text-sm text-gray-600">Procesa CVs, valida datos y genera las fichas finales</p>
+                <h2 className="text-lg font-bold">Generar Fichas</h2>
+                <p className="text-sm text-gray-600">Valida datos y genera las fichas finales en Word</p>
               </div>
             </div>
 
@@ -226,6 +200,7 @@ export default function App() {
               clienteNombre={selectedClientName}
               proyectoAcronimo={selectedProject}
               refreshTrigger={uploadRefreshTrigger}
+              extractedMetadata={anexoMetadata}
               onSuccess={(msg) => addAlert('success', msg)}
               onError={(msg) => addAlert('warning', msg)}
               onLoading={setIsLoading}

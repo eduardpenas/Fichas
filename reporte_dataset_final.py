@@ -22,7 +22,7 @@ def generar_reporte():
     print("📊 REPORTE FINAL DEL DATASET - ANEXOS II")
     print("="*100 + "\n")
     
-    archivos = sorted([f for f in os.listdir(DATASET_DIR) if f.endswith('.xlsx')])
+    archivos = sorted([f for f in os.listdir(DATASET_DIR) if f.endswith('.xlsx') and not f.startswith('~$')])
     
     datos_consolidados = {
         'fecha_analisis': datetime.now().isoformat(),
